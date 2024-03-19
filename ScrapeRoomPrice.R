@@ -20,7 +20,7 @@ js <- '$(document).keyup(function(event) {
     $("#hotelBtn").click();
   }
 });'
-
+debugmode = TRUE
 ui <- fluidPage(
   use_waiter(),
   shiny::tags$head(shiny::tags$script(HTML(js))),
@@ -63,19 +63,11 @@ server <- function(input, output, session) {
     id <- notify("Opening browser in a hidden mode ...")
     on.exit(removeNotification(id), add = TRUE)
     
-    output$notFound <- renderText("")
-    output$graph <- renderUI({});
-    
     # Show a loading spinner
     Waiter$new(html = spin_loaders(id=3, color = "black"), color = "#00000010")$show()
-    
+    output$graph <- renderUI({});
     output$data <- renderTable({})
     output$notFound <- renderText("")
-    
-    checkActive()
-    driver$Page$navigate("https://www.google.com")
-    notify("Navigating a browser http://.... on the device", id = id)
-    Sys.sleep(2)
     
     # List of prepositions to remove
     prepositions <- c("on", "in", "at", "to", "of", "from")
@@ -99,68 +91,26 @@ server <- function(input, output, session) {
     # Ex: Input: splitHotelName, Output: splitHotelName = "the"     "pullman" "hotel"   "riga"    "old"     "town" 
     splitHotelName <- splitHotelName[nzchar(splitHotelName)]
     
-    city <- NULL
-    YES <- 1
-    lastCityIndex <- totOccurOfCity <- cityExistence <- 0
-    # Find the last city name and it's index from splitHotelName. Ex: Input: splitHotelName, Output: city = "riga"
-    # Note: If there is only one city then first and last city name are identical.
-    for (i in 1:length(splitHotelName)) {
-      if (tolower(splitHotelName[[i]]) %in% tolower(world.cities$name)) {
-        city <- splitHotelName[[i]]
-        cityExistence = 1
-        lastCityIndex = i
-        totOccurOfCity = totOccurOfCity + 1
-      }
-    }
-    
-    # Ex1: Input1: splitHotelName = "the"  "pullman" "hotel"   "riga"    "old"    "town"
-    # Ex1: Output1: splitHotelName = "the"  "pullman" "hotel"   "riga"    "old"    "town" 
-    # Ex2: Input2: "the pullman hotel in riga", Output2: splitHotelName = "the"  "pullman" "hotel"
-    if (lastCityIndex != 0 && length(splitHotelName) == lastCityIndex) {
-      indexBeforeLastCity <- max(which(splitHotelName != city))
-      if (!is.na(indexBeforeLastCity)) {
-        splitHotelName <- splitHotelName[1:indexBeforeLastCity]
-      }
-    }
-    # Stop if the number of words from input exceeds 10
-    if (length(splitHotelName) > 10) {
-      output$notFound <- renderText("Hotel name should not exceed 10 words.")
-      Waiter$new(html = spin_wave())$hide()
-    }else if (is.null(city)) { # Stop if the city name is not found
-      output$notFound <- renderText("Please enter the name of the hotel along with its city name!")
-      Waiter$new(html = spin_wave())$hide()
-    } else if (cityExistence == YES && length(splitHotelName) >= 1 && totOccurOfCity >= 1) {
+      if(findHotelExistence(splitHotelName, output) == TRUE) {
       output$notFound <- renderText("")
       # Ex1: Input2: splitHotelName = "the pullman hotel in riga old town", Output: searchText = "the pullman hotel riga old town in riga"
       # Ex2: Input2: splitHotelName = "the pullman hotel in riga", Output: searchText = "the pullman hotel in riga"
       googleSearchText <- paste0(paste(unique(tolower(splitHotelName)), collapse = " "), " in ", city)
-      splitHotelName <- tolower(splitHotelName)
-      # Remove empty string and article which are seperated by space
-      # Ex: Input: str <- "the pullman hotel in riga old town" Output: "pullman hotel in riga old town"
-      hotelNameWithoutArticle <- gsub(paste0("\\b(a|an|the)\\b"), "", splitHotelName, ignore.case = TRUE)
-      hotelNameWithoutArticle <- hotelNameWithoutArticle[nzchar(hotelNameWithoutArticle)]
-      
-      # Created four different pattern of hotel name and then take them in one sentence.
-      # Ex1:  "the pullman hotel riga old town", "thepullmanhotelrigaoldtown", "pullman hotel riga old town", "pullmanhotelrigaoldtown"
-      # Exep: "tallink hotel", "tallinkhotel", "tallink hotel", "tallinkhotel"
-      hotelNameWithArticleAndSpace <- paste(splitHotelName, collapse = " ")
-      hotelNameWithArticleWithoutSpace <- paste(splitHotelName, collapse = "")
-      hotelNameWithoutArticleAndSpace <- paste(hotelNameWithoutArticle, collapse = " ")
-      hotelNameWithoutArticleWithSpace <- paste(hotelNameWithoutArticle, collapse = "")
-      hotelNamePattern <- c(input$hotelName, googleSearchText, paste(splitHotelName, collapse = " "), hotelNameWithArticleAndSpace, hotelNameWithArticleWithoutSpace, hotelNameWithoutArticleAndSpace, hotelNameWithoutArticleWithSpace)
-      
-      hotelNamePattern <- paste(unique(hotelNamePattern), collapse = "|")
+      hotelNamePattern <- findHotelNamePattern(input$hotelName, splitHotelName, googleSearchText)
       
       # ---------------- Plugin - Point ------------------------ #
       # checkActive() check the status of current session. If current session is inactive, then make it active. 
       checkHotelStarType <- hotelStarType <- hotelReviews <- hotelRating <- divSecFromGooglePage <- NULL
       checkActive()
-      driver$Page$navigate("https://www.google.com/")
-      Sys.sleep(2)
+      driver$Page$navigate("https://www.google.com")
+      notify("Navigating a browser http://.... on the device", id = id)
+      Sys.sleep(3)
       checkActive()
+      browser()
       driver$Runtime$evaluate(paste0('document.querySelector("textarea").value = "', googleSearchText,'"'))
       checkActive()
       driver$Runtime$evaluate('document.querySelector(".gNO89b").click()')
+      notify("Looking for hotel * type", id = id)
       Sys.sleep(3)
       # extract 3rd div of body of google page.
       # divSecFromGooglePage has character(0) value sometimes !!!!!!!!!!!
@@ -170,7 +120,6 @@ server <- function(input, output, session) {
       occurrenceFound <-  str_count(googlePageText, hotelNamePattern)
       checkActive()
       Sys.sleep(3)
-      
       hotelStar <- c(2,3,4,5)
       if(occurrenceFound >= 1){
         checkActive()
@@ -377,7 +326,6 @@ server <- function(input, output, session) {
             })
             
             roomPrices[[room]][["Prices"]] <- unlist(neighborHotelRoomPrices)
-            #roomPrices[[room]][["Prices"]] <- unlist(neighborHotelRoomPrices)
             roomPrices[[room]][["Ratings"]] <- unlist(neighborHotelRatings)
             roomPrices[[room]][["Reviews"]] <- unlist(neighborHotelReviews)
             roomPrices[[room]][["HotelName"]] <- unlist(neighborHotelNames)
