@@ -405,7 +405,7 @@ server <- function(input, output, session) {
             Sys.sleep(3)
           }
           
-          if(length(roomPrices$Single) > 0 || length(roomPrices$Double) > 0 || length(roomPrices$Triple) > 0 || length(roomPrices$Family) > 0){
+          if(length(roomPrices$Single$Prices) > 0 || length(roomPrices$Double$Prices) > 0 || length(roomPrices$Triple$Prices) > 0 || length(roomPrices$Family$Prices) > 0){
             prices_df <- data.frame()
             for(room in hotelRoomType){
               if(length(roomPrices[[room]]) > 0){
@@ -434,7 +434,7 @@ server <- function(input, output, session) {
             #output$targetHotelReview <- renderText(paste0("Target Hotel Reviews : ",hotelReviews))
             #output$variables <- renderPrint("Target Hotel/Hostel reviews : ",isExistingHotelReviews)
           }else{
-            output$notFound <- renderText("Not found any hotel or hostel!")
+            output$notFound <- renderText("Not found any competitor hotel!")
             Waiter$new(html = spin_wave())$hide()
           }
           Waiter$new(html = spin_wave())$hide()
