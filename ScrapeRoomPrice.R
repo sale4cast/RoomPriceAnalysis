@@ -10,9 +10,9 @@ library(maps)
 library(igraph)
 library(tidygraph)
 library(ggraph)
-library(tibble)
-library(stringr)
-library(ggplot2)
+#library(tibble)
+#library(stringr)
+#library(ggplot2)
 
 # enabling 'enter' to submit hotel name
 js <- '$(document).keyup(function(event) {
@@ -59,45 +59,51 @@ server <- function(input, output, session) {
   observeEvent(input$hotelBtn, {
     # Validate input
     req(input$hotelName)
-    
     id <- notify("Opening browser in a hidden mode ...")
     on.exit(removeNotification(id), add = TRUE)
-    
     # Show a loading spinner
     Waiter$new(html = spin_loaders(id=3, color = "black"), color = "#00000010")$show()
     output$graph <- renderUI({});
     output$data <- renderTable({})
     output$notFound <- renderText("")
+    splitHotelName <- findSplitHotelName(input$hotelName)
+    city <- NULL
+    YES <- 1
+    lastCityIndex <- totOccurOfCity <- cityExistence <- 0
+    # Find the last city name and it's index from splitHotelName. Ex: Input: splitHotelName, Output: city = "riga"
+    # Note: If there is only one city then first and last city name are identical.
+    for (i in 1:length(splitHotelName)) {
+      if (tolower(splitHotelName[[i]]) %in% tolower(world.cities$name)) {
+        city <- splitHotelName[[i]]
+        cityExistence = 1
+        lastCityIndex = i
+        totOccurOfCity = totOccurOfCity + 1
+      }
+    }
     
-    # List of prepositions to remove
-    prepositions <- c("on", "in", "at", "to", "of", "from")
-    
-    # Create a regular expression pattern for prepositions
-    prepositionPattern <- paste(prepositions, collapse = "|")
-    
-    # Remove prepositions from the input hotel name.
-    # EX: Input: hotelName = "the pullman hotel in riga old town", Output: hotelName = "the pullman hotel  riga old town"
-    hotelName <- gsub(paste0("\\b(?:", prepositionPattern, ")\\b"), "", input$hotelName, ignore.case = TRUE)
-    
-    # Split the hotel name into words. 
-    # Ex1: Input: hotelName, Output: splitHotelName = "the"     "pullman" "hotel"   ""        "riga"    "old"     "town"
-    # Ex2: Input: hotelName = "pullman,riga old town" , Output: "pullman" "riga"    "old"     "town"   
-    # Ex3: Input: hotelName = "pullman-riga old town" , Output: "pullman" "riga"    "old"     "town"   
-    if(grepl("-|,", hotelName, ignore.case = TRUE))
-      splitHotelName <- unlist(strsplit(hotelName, (" |,|-")))
-    else
-      splitHotelName <- unlist(strsplit(hotelName, " "))
-    # Ex: Input: nzchar(splitHotelName), Output: TRUE  TRUE  TRUE FALSE  TRUE  TRUE  TRUE
-    # Ex: Input: splitHotelName, Output: splitHotelName = "the"     "pullman" "hotel"   "riga"    "old"     "town" 
-    splitHotelName <- splitHotelName[nzchar(splitHotelName)]
-    
-      if(findHotelExistence(splitHotelName, output) == TRUE) {
+    # Ex1: Input1: splitHotelName = "the"  "pullman" "hotel"   "riga"    "old"    "town"
+    # Ex1: Output1: splitHotelName = "the"  "pullman" "hotel"   "riga"    "old"    "town" 
+    # Ex2: Input2: "the pullman hotel in riga", Output2: splitHotelName = "the"  "pullman" "hotel"
+    if (lastCityIndex != 0 && length(splitHotelName) == lastCityIndex) {
+      indexBeforeLastCity <- max(which(splitHotelName != city))
+      if (!is.na(indexBeforeLastCity)) {
+        splitHotelName <- splitHotelName[1:indexBeforeLastCity]
+      }
+    }
+    # Stop if the number of words from input exceeds 10
+    if (length(splitHotelName) > 10) {
+      output$notFound <- renderText("Hotel name should not exceed 10 words.")
+      Waiter$new(html = spin_wave())$hide()
+    }else if (is.null(city)) { # Stop if the city name is not found
+      output$notFound <- renderText("Please enter the name of the hotel along with its city name!")
+      Waiter$new(html = spin_wave())$hide()
+    } else if (cityExistence == YES && length(splitHotelName) >= 1 && totOccurOfCity >= 1) {
       output$notFound <- renderText("")
       # Ex1: Input2: splitHotelName = "the pullman hotel in riga old town", Output: searchText = "the pullman hotel riga old town in riga"
       # Ex2: Input2: splitHotelName = "the pullman hotel in riga", Output: searchText = "the pullman hotel in riga"
       googleSearchText <- paste0(paste(unique(tolower(splitHotelName)), collapse = " "), " in ", city)
       hotelNamePattern <- findHotelNamePattern(input$hotelName, splitHotelName, googleSearchText)
-      
+
       # ---------------- Plugin - Point ------------------------ #
       # checkActive() check the status of current session. If current session is inactive, then make it active. 
       checkHotelStarType <- hotelStarType <- hotelReviews <- hotelRating <- divSecFromGooglePage <- NULL
@@ -106,18 +112,24 @@ server <- function(input, output, session) {
       notify("Navigating a browser http://.... on the device", id = id)
       Sys.sleep(3)
       checkActive()
-      browser()
       driver$Runtime$evaluate(paste0('document.querySelector("textarea").value = "', googleSearchText,'"'))
       checkActive()
-      driver$Runtime$evaluate('document.querySelector(".gNO89b").click()')
-      notify("Looking for hotel * type", id = id)
+      queryGoogleSearchText1 <- queryGoogleSearchText2 <- queryGoogleSearchText3 <- NULL
+      browser()
+      if((queryGoogleSearchText1 <- driver$Runtime$evaluate('document.querySelector(".gNO89b")')$result$subtype) == "node")
+        driver$Runtime$evaluate('document.querySelector(".gNO89b").click()')
+      else if((queryGoogleSearchText2 <- driver$Runtime$evaluate('document.querySelector("input[aria-label=\'Google Search\']")')$result$subtype) == "node")
+        driver$Runtime$evaluate('document.querySelector("input[aria-label=\'Google Search\']").click()')
+      else if((queryGoogleSearchText3 <- driver$Runtime$evaluate('document.querySelector("input[value=\'Google Search\']")')$result$subtype) == "node")  
+        driver$Runtime$evaluate('document.querySelector("input[value=\'Google Search\']").click()')
+      notify("Looking for hotel * type ... ", id = id)
       Sys.sleep(3)
       # extract 3rd div of body of google page.
       # divSecFromGooglePage has character(0) value sometimes !!!!!!!!!!!
       divSecFromGooglePage <- tolower(as.character(driver$Runtime$evaluate('document.querySelector("div.fQtNvd").innerText')$result$value))
       # Extract the whole HTML page text and convert it to lowercase
       googlePageText <- tolower(as.character(driver$Runtime$evaluate('document.querySelector("body").innerText')$result$value))
-      occurrenceFound <-  str_count(googlePageText, hotelNamePattern)
+      occurrenceFound <-  str_count(googlePageText, hotelNamePattern) ### May need to check properly. Because the occurance for the pullman hotel in riga old town is only 4 ###
       checkActive()
       Sys.sleep(3)
       hotelStar <- c(2,3,4,5)
@@ -127,10 +139,10 @@ server <- function(input, output, session) {
         # Output: splitHotelName = c("the", "pullman", "hotel")            
         splitHotelName <- splitHotelName[splitHotelName != city] ## Need to understand why we are removing city name!
         # Scanning top right corner of google page to look if there is any star type over there.
-        checkHotelStarType <- driver$Runtime$evaluate('document.querySelector("#rhs > div.kp-wholepage-osrp > div.wPNfjb > div > div > div:nth-child(2) > div > div > div.nwVKo > div.loJjTe > div > span.E5BaQ").innerText')
-        checkActive()
+        checkHotelStarType <- driver$Runtime$evaluate('document.querySelector("#rhs > div.kp-wholepage-osrp > div.wPNfjb > div > div > div:nth-child(2) > div > div > div.nwVKo > div.loJjTe > div > span").innerText')
         if(is.null(checkHotelStarType$result$value)) 
-          checkHotelStarType <- driver$Runtime$evaluate('document.querySelector(".YhemCb").innerText') ## ! why do we need .YhemCb class
+          checkHotelStarType <- driver$Runtime$evaluate('document.querySelector("span.E5BaQ").innerText')        
+        checkActive()
         # Extracting hoter STAR '*' type and review number from top right corner of google page but not hotel rating.
         if(!is.null(checkHotelStarType) && !is.null(checkHotelStarType$result$value) && !is.na(parse_number(checkHotelStarType$result$value)) && parse_number(checkHotelStarType$result$value) %in% hotelStar)
         {
@@ -353,7 +365,7 @@ server <- function(input, output, session) {
             Sys.sleep(3)
           }
           
-          if(length(roomPrices$Single) > 0 || length(roomPrices$Double) > 0 || length(roomPrices$Triple) > 0 || length(roomPrices$Family) > 0){
+          if(length(roomPrices$Single$Prices) > 0 || length(roomPrices$Double$Prices) > 0 || length(roomPrices$Triple$Prices) > 0 || length(roomPrices$Family$Prices) > 0){
             prices_df <- data.frame()
             for(room in hotelRoomType){
               if(length(roomPrices[[room]]) > 0){
@@ -382,7 +394,7 @@ server <- function(input, output, session) {
             #output$targetHotelReview <- renderText(paste0("Target Hotel Reviews : ",hotelReviews))
             #output$variables <- renderPrint("Target Hotel/Hostel reviews : ",isExistingHotelReviews)
           }else{
-            output$notFound <- renderText("Not found any hotel or hostel!")
+            output$notFound <- renderText("Not found any competitor hotel!")
             Waiter$new(html = spin_wave())$hide()
           }
           Waiter$new(html = spin_wave())$hide()
