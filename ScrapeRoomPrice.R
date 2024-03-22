@@ -115,13 +115,12 @@ server <- function(input, output, session) {
       driver$Runtime$evaluate(paste0('document.querySelector("textarea").value = "', googleSearchText,'"'))
       checkActive()
       queryGoogleSearchText1 <- queryGoogleSearchText2 <- queryGoogleSearchText3 <- NULL
-      browser()
+      #browser()
       if((queryGoogleSearchText1 <- driver$Runtime$evaluate('document.querySelector(".gNO89b")')$result$subtype) == "node")
         driver$Runtime$evaluate('document.querySelector(".gNO89b").click()')
       else if((queryGoogleSearchText2 <- driver$Runtime$evaluate('document.querySelector("input[aria-label=\'Google Search\']")')$result$subtype) == "node")
         driver$Runtime$evaluate('document.querySelector("input[aria-label=\'Google Search\']").click()')
-      else if((queryGoogleSearchText3 <- driver$Runtime$evaluate('document.querySelector("input[value=\'Google Search\']")')$result$subtype) == "node")  
-        driver$Runtime$evaluate('document.querySelector("input[value=\'Google Search\']").click()')
+      ### need to add js path
       notify("Looking for hotel * type ... ", id = id)
       Sys.sleep(3)
       # extract 3rd div of body of google page.
@@ -139,10 +138,13 @@ server <- function(input, output, session) {
         # Output: splitHotelName = c("the", "pullman", "hotel")            
         splitHotelName <- splitHotelName[splitHotelName != city] ## Need to understand why we are removing city name!
         # Scanning top right corner of google page to look if there is any star type over there.
-        checkHotelStarType <- driver$Runtime$evaluate('document.querySelector("#rhs > div.kp-wholepage-osrp > div.wPNfjb > div > div > div:nth-child(2) > div > div > div.nwVKo > div.loJjTe > div > span").innerText')
+        checkHotelStarType <- driver$Runtime$evaluate('document.querySelector("#rhs > div.kp-wholepage-osrp > div.wPNfjb > div > div > div:nth-child(2) > div > div > div.nwVKo > div.loJjTe > div > span:nth-of-type(3)").innerText')
         if(is.null(checkHotelStarType$result$value)) 
-          checkHotelStarType <- driver$Runtime$evaluate('document.querySelector("span.E5BaQ").innerText')        
+          checkHotelStarType <- driver$Runtime$evaluate('document.querySelector("span.E5BaQ").innerText')  
+        if(is.null(checkHotelStarType$result$value)) 
+          checkHotelStarType <- driver$Runtime$evaluate('document.querySelector("span.YhemCb").innerText') # For some hotel, both path and span can be change    
         checkActive()
+        browser()
         # Extracting hoter STAR '*' type and review number from top right corner of google page but not hotel rating.
         if(!is.null(checkHotelStarType) && !is.null(checkHotelStarType$result$value) && !is.na(parse_number(checkHotelStarType$result$value)) && parse_number(checkHotelStarType$result$value) %in% hotelStar)
         {
@@ -353,7 +355,7 @@ server <- function(input, output, session) {
             driver$Runtime$evaluate('document.querySelector("#yDmH0d > c-wiz.zQTmif.SSPGKf.AglWE > div > c-wiz > div.dTQsx.gBIxsf > div.MawWP > div.wMMMNd > c-wiz > div > div > div.E4DaWc.AJr5uf > div > div.tbDMNe > div.YFfNHd > div > div > div > div.cQnuXe.k0gFV > div").click()')
             notify("Clicking on the '+' button to increase the guest number by 1 ...", id = id)
             Sys.sleep(3)
-            
+            #browser()
             checkActive()
             driver$Runtime$evaluate('document.querySelector("button[jsname=\'TdyTDe\']").click()')
             notify(paste0("Looking for the price of ",room," room ..."), id = id)
