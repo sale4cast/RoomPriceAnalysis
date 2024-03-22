@@ -1,3 +1,58 @@
+findHotelExistence <- function(splitHotelName, output) {
+  city <- NULL
+  YES <- 1
+  lastCityIndex <- totOccurOfCity <- cityExistence <- 0
+  # Find the last city name and it's index from splitHotelName. Ex: Input: splitHotelName, Output: city = "riga"
+  # Note: If there is only one city then first and last city name are identical.
+  for (i in 1:length(splitHotelName)) {
+    if (tolower(splitHotelName[[i]]) %in% tolower(world.cities$name)) {
+      city <- splitHotelName[[i]]
+      cityExistence = 1
+      lastCityIndex = i
+      totOccurOfCity = totOccurOfCity + 1
+    }
+  }
+  
+  # Ex1: Input1: splitHotelName = "the"  "pullman" "hotel"   "riga"    "old"    "town"
+  # Ex1: Output1: splitHotelName = "the"  "pullman" "hotel"   "riga"    "old"    "town" 
+  # Ex2: Input2: "the pullman hotel in riga", Output2: splitHotelName = "the"  "pullman" "hotel"
+  if (lastCityIndex != 0 && length(splitHotelName) == lastCityIndex) {
+    indexBeforeLastCity <- max(which(splitHotelName != city))
+    if (!is.na(indexBeforeLastCity)) {
+      splitHotelName <- splitHotelName[1:indexBeforeLastCity]
+    }
+  }
+  # Stop if the number of words from input exceeds 10
+  if (length(splitHotelName) > 10) {
+    output$notFound <- renderText("Hotel name should not exceed 10 words.")
+    Waiter$new(html = spin_wave())$hide()
+  }else if (is.null(city)) { # Stop if the city name is not found
+    output$notFound <- renderText("Please enter the name of the hotel along with its city name!")
+    Waiter$new(html = spin_wave())$hide()
+  } else if (cityExistence == YES && length(splitHotelName) >= 1 && totOccurOfCity >= 1)
+    return(TRUE)
+}
+
+findHotelNamePattern <- function(inputHotelName, splitHotelName, googleSearchText){
+  splitHotelName <- tolower(splitHotelName)
+  # Remove empty string and article which are seperated by space
+  # Ex: Input: str <- "the pullman hotel in riga old town" Output: "pullman hotel in riga old town"
+  hotelNameWithoutArticle <- gsub(paste0("\\b(a|an|the)\\b"), "", splitHotelName, ignore.case = TRUE)
+  hotelNameWithoutArticle <- hotelNameWithoutArticle[nzchar(hotelNameWithoutArticle)]
+  
+  # Created four different pattern of hotel name and then take them in one sentence.
+  # Ex1:  "the pullman hotel riga old town", "thepullmanhotelrigaoldtown", "pullman hotel riga old town", "pullmanhotelrigaoldtown"
+  # Exep: "tallink hotel", "tallinkhotel", "tallink hotel", "tallinkhotel"
+  hotelNameWithArticleAndSpace <- paste(splitHotelName, collapse = " ")
+  hotelNameWithArticleWithoutSpace <- paste(splitHotelName, collapse = "")
+  hotelNameWithoutArticleAndSpace <- paste(hotelNameWithoutArticle, collapse = " ")
+  hotelNameWithoutArticleWithSpace <- paste(hotelNameWithoutArticle, collapse = "")
+  hotelNamePattern <- c(inputHotelName, googleSearchText, paste(splitHotelName, collapse = " "), hotelNameWithArticleAndSpace, hotelNameWithArticleWithoutSpace, hotelNameWithoutArticleAndSpace, hotelNameWithoutArticleWithSpace)
+  
+  hotelNamePattern <- paste(unique(hotelNamePattern), collapse = "|")
+  return(hotelNamePattern)
+}
+
 findHotelStarType <- function(hotelName, pageText, isDivSecFromGooglePage){
   hotelStarType <- NULL
   # Split pageText by newline
