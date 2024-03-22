@@ -139,7 +139,7 @@ server <- function(input, output, session) {
         # Output: splitHotelName = c("the", "pullman", "hotel")            
         splitHotelName <- splitHotelName[splitHotelName != city] ## Need to understand why we are removing city name!
         # Scanning top right corner of google page to look if there is any star type over there.
-        checkHotelStarType <- driver$Runtime$evaluate('document.querySelector("#rhs > div.kp-wholepage-osrp > div.wPNfjb > div > div > div:nth-child(2) > div > div > div.nwVKo > div.loJjTe > div > span").innerText')
+        checkHotelStarType <- driver$Runtime$evaluate('document.querySelector("#rhs > div.kp-wholepage-osrp > div.wPNfjb > div > div > div:nth-child(2) > div > div > div.nwVKo > div.loJjTe > div > span:nth-of-type(3)").innerText')
         if(is.null(checkHotelStarType$result$value)) 
           checkHotelStarType <- driver$Runtime$evaluate('document.querySelector("span.E5BaQ").innerText')        
         checkActive()

@@ -110,3 +110,27 @@ findHotelStarType <- function(hotelName, pageText, isDivSecFromGooglePage){
   }  
   return(hotelStarType)
 }
+
+findSplitHotelName <- function(inputHotelName){
+  # List of prepositions to remove
+  prepositions <- c("on", "in", "at", "to", "of", "from")
+  
+  # Create a regular expression pattern for prepositions
+  prepositionPattern <- paste(prepositions, collapse = "|")
+  
+  # Remove prepositions from the input hotel name.
+  # EX: Input: hotelName = "the pullman hotel in riga old town", Output: hotelName = "the pullman hotel  riga old town"
+  hotelName <- gsub(paste0("\\b(?:", prepositionPattern, ")\\b"), "", inputHotelName, ignore.case = TRUE)
+  
+  # Split the hotel name into words. 
+  # Ex1: Input: hotelName, Output: splitHotelName = "the"     "pullman" "hotel"   ""        "riga"    "old"     "town"
+  # Ex2: Input: hotelName = "pullman,riga old town" , Output: "pullman" "riga"    "old"     "town"   
+  # Ex3: Input: hotelName = "pullman-riga old town" , Output: "pullman" "riga"    "old"     "town"   
+  if(grepl("-|,", hotelName, ignore.case = TRUE))
+    splitHotelName <- unlist(strsplit(hotelName, (" |,|-")))
+  else
+    splitHotelName <- unlist(strsplit(hotelName, " "))
+  # Ex: Input: nzchar(splitHotelName), Output: TRUE  TRUE  TRUE FALSE  TRUE  TRUE  TRUE
+  # Ex: Input: splitHotelName, Output: splitHotelName = "the"     "pullman" "hotel"   "riga"    "old"     "town" 
+  splitHotelName <- splitHotelName[nzchar(splitHotelName)]
+}
