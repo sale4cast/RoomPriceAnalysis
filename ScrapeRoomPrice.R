@@ -47,7 +47,6 @@ server <- function(input, output, session) {
       driver <- driver$respawn()
     }
   }
-  
   checkActive()
   driver$view()
   
@@ -103,7 +102,7 @@ server <- function(input, output, session) {
       # Ex2: Input2: splitHotelName = "the pullman hotel in riga", Output: searchText = "the pullman hotel in riga"
       googleSearchText <- paste0(paste(unique(tolower(splitHotelName)), collapse = " "), " in ", city)
       hotelNamePattern <- findHotelNamePattern(input$hotelName, splitHotelName, googleSearchText)
-
+      
       # ---------------- Plugin - Point ------------------------ #
       # checkActive() check the status of current session. If current session is inactive, then make it active. 
       checkHotelStarType <- hotelStarType <- hotelReviews <- hotelRating <- divSecFromGooglePage <- NULL
@@ -113,38 +112,52 @@ server <- function(input, output, session) {
       Sys.sleep(3)
       checkActive()
       driver$Runtime$evaluate(paste0('document.querySelector("textarea").value = "', googleSearchText,'"'))
-      checkActive()
       queryGoogleSearchText1 <- queryGoogleSearchText2 <- queryGoogleSearchText3 <- NULL
-      #browser()
-      if((queryGoogleSearchText1 <- driver$Runtime$evaluate('document.querySelector(".gNO89b")')$result$subtype) == "node")
+      checkActive()
+      queryGoogleSearchText1 <- driver$Runtime$evaluate('document.querySelector(".gNO89b")')
+      checkActive()
+      queryGoogleSearchText2 <- driver$Runtime$evaluate('document.querySelector("input[aria-label=\'Google Search\']")')
+      
+      if((queryGoogleSearchText1$result$subtype) == "node"){
+        checkActive()
         driver$Runtime$evaluate('document.querySelector(".gNO89b").click()')
-      else if((queryGoogleSearchText2 <- driver$Runtime$evaluate('document.querySelector("input[aria-label=\'Google Search\']")')$result$subtype) == "node")
+      }
+      else if(queryGoogleSearchText2$result$subtype == "node"){
+        checkActive()
         driver$Runtime$evaluate('document.querySelector("input[aria-label=\'Google Search\']").click()')
+      }
+        
       ### need to add js path
       notify("Looking for hotel * type ... ", id = id)
       Sys.sleep(3)
       # extract 3rd div of body of google page.
       # divSecFromGooglePage has character(0) value sometimes !!!!!!!!!!!
+      checkActive()
       divSecFromGooglePage <- tolower(as.character(driver$Runtime$evaluate('document.querySelector("div.fQtNvd").innerText')$result$value))
       # Extract the whole HTML page text and convert it to lowercase
+      checkActive()
       googlePageText <- tolower(as.character(driver$Runtime$evaluate('document.querySelector("body").innerText')$result$value))
       occurrenceFound <-  str_count(googlePageText, hotelNamePattern) ### May need to check properly. Because the occurance for the pullman hotel in riga old town is only 4 ###
       checkActive()
       Sys.sleep(3)
       hotelStar <- c(2,3,4,5)
       if(occurrenceFound >= 1){
-        checkActive()
         # Get splitHotelName by removing the city name Ex: splitHotelName = c("the", "pullman", "hotel", "Riga")
         # Output: splitHotelName = c("the", "pullman", "hotel")            
         splitHotelName <- splitHotelName[splitHotelName != city] ## Need to understand why we are removing city name!
         # Scanning top right corner of google page to look if there is any star type over there.
-        checkHotelStarType <- driver$Runtime$evaluate('document.querySelector("#rhs > div.kp-wholepage-osrp > div.wPNfjb > div > div > div:nth-child(2) > div > div > div.nwVKo > div.loJjTe > div > span:nth-of-type(3)").innerText')
-        if(is.null(checkHotelStarType$result$value)) 
-          checkHotelStarType <- driver$Runtime$evaluate('document.querySelector("span.E5BaQ").innerText')  
-        if(is.null(checkHotelStarType$result$value)) 
-          checkHotelStarType <- driver$Runtime$evaluate('document.querySelector("span.YhemCb").innerText') # For some hotel, both path and span can be change    
         checkActive()
-        browser()
+        checkHotelStarType <- driver$Runtime$evaluate('document.querySelector("#rhs > div.kp-wholepage-osrp > div.wPNfjb > div > div > div:nth-child(2) > div > div > div.nwVKo > div.loJjTe > div > span:nth-of-type(3)").innerText')
+        if(is.null(checkHotelStarType$result$value)){
+          checkActive()
+          checkHotelStarType <- driver$Runtime$evaluate('document.querySelector("span.E5BaQ").innerText')  
+        }
+         
+        if(is.null(checkHotelStarType$result$value)){
+          checkActive()
+          checkHotelStarType <- driver$Runtime$evaluate('document.querySelector("span.YhemCb").innerText') # For some hotel, both path and span can be change
+        }
+        #browser()
         # Extracting hoter STAR '*' type and review number from top right corner of google page but not hotel rating.
         if(!is.null(checkHotelStarType) && !is.null(checkHotelStarType$result$value) && !is.na(parse_number(checkHotelStarType$result$value)) && parse_number(checkHotelStarType$result$value) %in% hotelStar)
         {
@@ -152,6 +165,7 @@ server <- function(input, output, session) {
           checkActive()
           hotelRating <- driver$Runtime$evaluate('document.querySelector("#rhs > div.kp-wholepage-osrp > div.wPNfjb > div > div > div:nth-child(2) > div > div > div.nwVKo > div.loJjTe > div > span.Aq14fc").innerText')$result$value
           hotelRating <- parse_number(hotelRating)
+          checkActive()
           hotelReviews <- driver$Runtime$evaluate('document.querySelector("#rhs > div.kp-wholepage-osrp > div.wPNfjb > div > div > div:nth-child(2) > div > div > div.nwVKo > div.loJjTe > div > a").innerText')
           hotelReviews <- parse_number(hotelReviews$result$value)
         }
@@ -196,8 +210,8 @@ server <- function(input, output, session) {
         
         notify(paste0("Searching neighbor hotels which are ", hotelStarType," star type"), id = id)
         
-        checkActive()
         # Click on the drop-down menu and check if it is exist by guestDropdownBtn$result$objectId 
+        checkActive()
         guestDropdownBtn <- driver$Runtime$evaluate('document.querySelector("div.R2w7Jd")')
         Sys.sleep(3)   
         if(is.null(guestDropdownBtn$result$objectId)){
@@ -205,11 +219,12 @@ server <- function(input, output, session) {
           Waiter$new(html = spin_wave())$hide()
           
         }else{
-          checkActive()
           # Click to open the drop down-menu.
-          driver$Runtime$evaluate('document.querySelector("div.R2w7Jd").click()')
           checkActive()
+          driver$Runtime$evaluate('document.querySelector("div.R2w7Jd").click()')
+          
           # Click to select guest number 1 from the drop-down menu.
+          checkActive()
           driver$Runtime$evaluate('document.querySelector("div.JWXKNd").click()')
           notify("Clicking on the dropdown button to select a number of guest ...", id = id)        
           Sys.sleep(3)
@@ -250,6 +265,7 @@ server <- function(input, output, session) {
           Sys.sleep(3)
           
           # Retrieve current date from date picker.
+          checkActive()
           checkInDate <- driver$Runtime$evaluate('document.querySelector(".HDland").getAttribute("data-iso")')$result$value
           
           # Click to submit check-in and check-out date.
@@ -276,7 +292,7 @@ server <- function(input, output, session) {
             )
             
             splittedPriceElements <- unlist(strsplit(priceElement$result$value, "@"))
-          
+            
             neighborHotelRoomPrices <- lapply(splittedPriceElements, function(aElement){
               ## Great Deal\n$80    Deal 5%\n$90
               roomPrice <- unlist(strsplit(aElement,"\n"))
@@ -388,9 +404,9 @@ server <- function(input, output, session) {
             
             targetHotel <- gsub("\\bin\\s.*", "", input$hotelName, ignore.case = TRUE)
             # browser()
-
+            
             makeNetworkGraph(prices_df, targetHotel, hotelRating, hotelReviews, checkInDate, output)
-
+            
             #output$data <- renderTable(prices_df)
             #output$targetHotelRating <- renderText(paste0("Target Hotel Rating : ",hotelRating))
             #output$targetHotelReview <- renderText(paste0("Target Hotel Reviews : ",hotelReviews))
