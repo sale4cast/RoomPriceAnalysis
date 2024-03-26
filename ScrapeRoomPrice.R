@@ -112,21 +112,26 @@ server <- function(input, output, session) {
       Sys.sleep(3)
       checkActive()
       driver$Runtime$evaluate(paste0('document.querySelector("textarea").value = "', googleSearchText,'"'))
-      queryGoogleSearchText1 <- queryGoogleSearchText2 <- queryGoogleSearchText3 <- NULL
+      googleSearchText1 <- googleSearchText2 <- googleSearchText3 <- NULL
       checkActive()
-      queryGoogleSearchText1 <- driver$Runtime$evaluate('document.querySelector(".gNO89b")')
+      googleSearchText1 <- driver$Runtime$evaluate('document.querySelector(".gNO89b")')
       checkActive()
-      queryGoogleSearchText2 <- driver$Runtime$evaluate('document.querySelector("input[aria-label=\'Google Search\']")')
-      
-      if((queryGoogleSearchText1$result$subtype) == "node"){
+      googleSearchText2 <- driver$Runtime$evaluate('document.querySelector("input[aria-label=\'Google Search\']")')
+      checkActive()
+      googleSearchText3 <- driver$Runtime$evaluate('document.querySelector("input[value=\'Google Search\']")')
+      #browser()
+      if((googleSearchText1$result$subtype) == "node"){
         checkActive()
         driver$Runtime$evaluate('document.querySelector(".gNO89b").click()')
       }
-      else if(queryGoogleSearchText2$result$subtype == "node"){
+      else if(googleSearchText2$result$subtype == "node"){
         checkActive()
         driver$Runtime$evaluate('document.querySelector("input[aria-label=\'Google Search\']").click()')
       }
-        
+      else if(googleSearchText3$result$subtype == "node"){
+        checkActive()
+        driver$Runtime$evaluate('document.querySelector("input[value=\'Google Search\']").click()')
+      }      
       ### need to add js path
       notify("Looking for hotel * type ... ", id = id)
       Sys.sleep(3)
@@ -249,7 +254,7 @@ server <- function(input, output, session) {
         searchTextForNeighborHotel <- paste0(hotelStarType, " star hotel in ", city)
         checkActive()
         driver$Runtime$evaluate(paste0('document.querySelector("textarea").value = "', searchTextForNeighborHotel,'"'))
-        browser()
+        #browser()
         checkActive()
         searchButton1 <- driver$Runtime$evaluate('document.querySelector("#tsf > div:nth-child(1) > div.A8SBwf > div.RNNXgb > button")')
         checkActive()
@@ -493,7 +498,6 @@ server <- function(input, output, session) {
         output$notFound <- renderText("Not found any hotel type!")
         Waiter$new(html = spin_wave())$hide()
       }      
-    }
   })
 }
 
