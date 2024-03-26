@@ -134,13 +134,21 @@ server <- function(input, output, session) {
       # divSecFromGooglePage has character(0) value sometimes !!!!!!!!!!!
       checkActive()
       divSecFromGooglePage <- tolower(as.character(driver$Runtime$evaluate('document.querySelector("div.fQtNvd").innerText')$result$value))
+      if(is.null(divSecFromGooglePage)){
+        checkActive()
+        divSecFromGooglePage <- tolower(as.character(driver$Runtime$evaluate('document.querySelector("#Odp5De > div > div > div > div > div.F0toYe > div > div > div.hkrXre > div > div > div:nth-child(1) > a").innerText')$result$value))
+      }
+      if(is.null(divSecFromGooglePage)){
+        checkActive()
+        divSecFromGooglePage <- tolower(as.character(driver$Runtime$evaluate('document.querySelector("a[aria-labelledby=\'0_lbl\']").innerText')$result$value))
+      }
       # Extract the whole HTML page text and convert it to lowercase
       checkActive()
       googlePageText <- tolower(as.character(driver$Runtime$evaluate('document.querySelector("body").innerText')$result$value))
       occurrenceFound <-  str_count(googlePageText, hotelNamePattern) ### May need to check properly. Because the occurance for the pullman hotel in riga old town is only 4 ###
       checkActive()
       Sys.sleep(3)
-      hotelStar <- c(2,3,4,5)
+      hotelStarString <- c("2-","3-","4-","5-")
       if(occurrenceFound >= 1){
         # Get splitHotelName by removing the city name Ex: splitHotelName = c("the", "pullman", "hotel", "Riga")
         # Output: splitHotelName = c("the", "pullman", "hotel")            
@@ -157,72 +165,135 @@ server <- function(input, output, session) {
           checkActive()
           checkHotelStarType <- driver$Runtime$evaluate('document.querySelector("span.YhemCb").innerText') # For some hotel, both path and span can be change
         }
-        #browser()
+        # browser()
         # Extracting hoter STAR '*' type and review number from top right corner of google page but not hotel rating.
-        if(!is.null(checkHotelStarType) && !is.null(checkHotelStarType$result$value) && !is.na(parse_number(checkHotelStarType$result$value)) && parse_number(checkHotelStarType$result$value) %in% hotelStar)
+        if(!is.null(checkHotelStarType) && !is.null(checkHotelStarType$result$value) && !is.na(parse_number(checkHotelStarType$result$value)) && grepl(paste(hotelStarString, collapse = "|"), checkHotelStarType$result$value))
         {
           hotelStarType <- parse_number(checkHotelStarType$result$value)
           checkActive()
-          hotelRating <- driver$Runtime$evaluate('document.querySelector("#rhs > div.kp-wholepage-osrp > div.wPNfjb > div > div > div:nth-child(2) > div > div > div.nwVKo > div.loJjTe > div > span.Aq14fc").innerText')$result$value
+          
+          # For Hotel Rating
+          hotelRating <- driver$Runtime$evaluate('document.querySelector("#rhs > div.kp-wholepage-osrp > div.wPNfjb > div > div > div:nth-child(2) > div > div > div.nwVKo > div.loJjTe > div > span").innerText')$result$value
+          if(is.null(hotelRating)){
+            checkActive()
+            hotelRating <- driver$Runtime$evaluate('document.querySelector("span.Aq14fc").innerText')$result$value
+          }
           hotelRating <- parse_number(hotelRating)
+          
+          # For Hotel Reviews
           checkActive()
-          hotelReviews <- driver$Runtime$evaluate('document.querySelector("#rhs > div.kp-wholepage-osrp > div.wPNfjb > div > div > div:nth-child(2) > div > div > div.nwVKo > div.loJjTe > div > a").innerText')
-          hotelReviews <- parse_number(hotelReviews$result$value)
+          hotelReviews <- driver$Runtime$evaluate('document.querySelector("#rhs > div.kp-wholepage-osrp > div.wPNfjb > div > div > div:nth-child(2) > div > div > div.nwVKo > div.loJjTe > div > a").innerText')$result$value
+          if(is.null(hotelReviews)){
+            checkActive()
+            hotelReviews <- driver$Runtime$evaluate('document.querySelector("a.hqzQac").innerText')$result$value
+          }
+          hotelReviews <- parse_number(hotelReviews)
         }
         # Extracting hotel STAR * type, rating and review number from the 3rd div of body of google page.
         else if(!is.null(divSecFromGooglePage) && length(divSecFromGooglePage) > 0)
         {
           hotelStarType <- findHotelStarType(splitHotelName, divSecFromGooglePage, TRUE)     
           checkActive()
-          hotelRating <- driver$Runtime$evaluate('document.querySelector("span.yi40Hd.YrbPuc").innerText')$result$value
+          
+          hotelRating <- driver$Runtime$evaluate('document.querySelector("#Odp5De > div > div > div > div > div.F0toYe > div > div > div.hkrXre > div > div > div:nth-child(1) > a > div > div > div:nth-child(2) > div > span.Y0A0hc > span").innerText')$result$value
+          if(is.null(hotelRating)){
+            checkActive()
+            hotelRating <- driver$Runtime$evaluate('document.querySelector("span.yi40Hd").innerText')$result$value
+          }
           hotelRating <- parse_number(hotelRating)
+          
           checkActive()
-          hotelReviews <- driver$Runtime$evaluate('document.querySelector("span.RDApEe.YrbPuc").innerText')
+          hotelReviews <- driver$Runtime$evaluate('document.querySelector("#Odp5De > div > div > div > div > div.F0toYe > div > div > div.hkrXre > div > div > div:nth-child(1) > a > div > div > div:nth-child(2) > div > span.Y0A0hc > span:nth-of-type(3)").innerText')$result$value
+          if(is.null(hotelReviews)){
+            checkActive()
+            hotelReviews <- driver$Runtime$evaluate('document.querySelector("span.RDApEe").innerText')$result$value
+          }
+          
           if(grepl("k", hotelReviews, ignore.case = TRUE))
-            hotelReviews <- parse_number(hotelReviews$result$value) * 1000
+            hotelReviews <- parse_number(hotelReviews) * 1000
           else
-            hotelReviews <- parse_number(hotelReviews$result$value)
+            hotelReviews <- parse_number(hotelReviews)
         }
         # Finding hoter STAR '*' type from body of google page. However, it is not possible to find review number and rating.
         # !!! How do we set the review and rating then !!!
         # Input: The Social Hub Eindhoven. Output: checkHotelStarType$result$type = "string", checkHotelStarType$result$value = "Hotel"
-        else if(is.na(parse_number(checkHotelStarType$result$value)))
+        else if(is.na(parse_number(checkHotelStarType$result$value)) || !grepl(paste(hotelStarString, collapse = "|"), checkHotelStarType$result$value))
           hotelStarType <- findHotelStarType(splitHotelName, googlePageText, FALSE) 
       }   
       # In special case when checkHotelStarType is not null but hotelRating and hotelReviews are null. Example: The Social Hub Eindhoven
       if ((!is.null(checkHotelStarType$result$value)) && is.null(hotelRating) && is.null(hotelReviews)) {
+        # For Hotel Rating
         checkActive()
-        hotelRating <- driver$Runtime$evaluate('document.querySelector("#rhs > div.kp-wholepage-osrp > div.wPNfjb > div > div > div:nth-child(2) > div > div > div.nwVKo > div.loJjTe > div > span.Aq14fc").innerText')$result$value
+        hotelRating <- driver$Runtime$evaluate('document.querySelector("#rhs > div.kp-wholepage-osrp > div.wPNfjb > div > div > div:nth-child(2) > div > div > div.nwVKo > div.loJjTe > div > span").innerText')$result$value
+        if(is.null(hotelRating)){
+          checkActive()
+          hotelRating <- driver$Runtime$evaluate('document.querySelector("span.Aq14fc").innerText')$result$value
+        }
         hotelRating <- parse_number(hotelRating)
+
+        # For Hotel Reviews
         checkActive()
-        hotelReviews <- driver$Runtime$evaluate('document.querySelector("a[data-async-trigger=\'reviewDialog\']").innerText')
-        hotelReviews <- parse_number(hotelReviews$result$value)
+        hotelReviews <- driver$Runtime$evaluate('document.querySelector("#rhs > div.kp-wholepage-osrp > div.wPNfjb > div > div > div:nth-child(2) > div > div > div.nwVKo > div.loJjTe > div > a").innerText')$result$value
+        if(is.null(hotelReviews)){
+          checkActive()
+          hotelReviews <- driver$Runtime$evaluate('document.querySelector("a.hqzQac").innerText')$result$value
+        }
+        if(is.null(hotelReviews)){
+          checkActive()
+          hotelReviews <- driver$Runtime$evaluate('document.querySelector("a[data-async-trigger=\'reviewDialog\']").innerText')$result$value
+        }
+        hotelReviews <- parse_number(hotelReviews)
       }
       
       if(!is.null(hotelStarType)){
         searchTextForNeighborHotel <- paste0(hotelStarType, " star hotel in ", city)
         checkActive()
         driver$Runtime$evaluate(paste0('document.querySelector("textarea").value = "', searchTextForNeighborHotel,'"'))
-        
+        browser()
         checkActive()
-        driver$Runtime$evaluate('document.querySelector("#tsf > div:nth-child(1) > div.A8SBwf > div.RNNXgb > button").click()')
+        searchButton1 <- driver$Runtime$evaluate('document.querySelector("#tsf > div:nth-child(1) > div.A8SBwf > div.RNNXgb > button")')
+        checkActive()
+        searchButton2 <- driver$Runtime$evaluate('document.querySelector("button.Tg7LZd")')
+        checkActive()
+        searchButton3 <- driver$Runtime$evaluate('document.querySelector("button[aria-label=\'Search\']")')
+        if(searchButton1$result$subtype == "node"){
+          driver$Runtime$evaluate('document.querySelector("#tsf > div:nth-child(1) > div.A8SBwf > div.RNNXgb > button").click()')
+        }else if(searchButton2$result$subtype == "node"){
+          driver$Runtime$evaluate('document.querySelector("button.Tg7LZd").click()')
+        }else if(searchButton3$result$subtype == "node"){
+          driver$Runtime$evaluate('document.querySelector("button[aria-label=\'Search\']").click()')
+        }
         Sys.sleep(2)
         
         notify(paste0("Searching neighbor hotels which are ", hotelStarType," star type"), id = id)
         
         # Click on the drop-down menu and check if it is exist by guestDropdownBtn$result$objectId 
         checkActive()
-        guestDropdownBtn <- driver$Runtime$evaluate('document.querySelector("div.R2w7Jd")')
-        Sys.sleep(3)   
-        if(is.null(guestDropdownBtn$result$objectId)){
+        guestDropdownBtn1 <- driver$Runtime$evaluate('document.querySelector("#Odp5De > div > div > div > div > div.uR9mR > div.j6xmKe > div > g-popup > div:nth-child(1) > div > div > div > div")')
+        checkActive()
+        guestDropdownBtn2 <- driver$Runtime$evaluate('document.querySelector("div.R2w7Jd")')
+        checkActive()
+        guestDropdownBtn3 <- driver$Runtime$evaluate('document.querySelector("div[aria-label=\'Select number of guests. Current selection is 2 guests\']")')
+        Sys.sleep(3)  
+        
+        # Click to open the drop down-menu.
+        if(guestDropdownBtn1$result$subtype == "node"){
+          checkActive()
+          driver$Runtime$evaluate('document.querySelector("#Odp5De > div > div > div > div > div.uR9mR > div.j6xmKe > div > g-popup > div:nth-child(1) > div > div > div > div").click()')
+        }else if(guestDropdownBtn2$result$subtype == "node"){
+          checkActive()
+          driver$Runtime$evaluate('document.querySelector("div.R2w7Jd").click()')
+        }
+        }else if(guestDropdownBtn3$result$subtype == "node"){
+          checkActive()
+          driver$Runtime$evaluate('document.querySelector("div[aria-label=\'Select number of guests. Current selection is 2 guests\']").click()')
+        }
+        
+        if(is.null(guestDropdownBtn1$result$objectId) && is.null(guestDropdownBtn2$result$objectId) && is.null(guestDropdownBtn3$result$objectId)){
           output$notFound <- renderText("Not found dropdown button!")
           Waiter$new(html = spin_wave())$hide()
           
         }else{
-          # Click to open the drop down-menu.
-          checkActive()
-          driver$Runtime$evaluate('document.querySelector("div.R2w7Jd").click()')
-          
           # Click to select guest number 1 from the drop-down menu.
           checkActive()
           driver$Runtime$evaluate('document.querySelector("div.JWXKNd").click()')
