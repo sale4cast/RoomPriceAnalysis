@@ -10,23 +10,22 @@ library(maps)
 library(igraph)
 library(tidygraph)
 library(ggraph)
-#library(tibble)
-#library(stringr)
-#library(ggplot2)
 
 # enabling 'enter' to submit hotel name
 js <- '$(document).keyup(function(event) {
   if ($("#hotelName").is(":focus") && (event.key == "Enter")) {
     $("#hotelBtn").click();
   }
-});'
+});
+
+'
 debugmode = TRUE
 ui <- fluidPage(
   use_waiter(),
   shiny::tags$head(shiny::tags$script(HTML(js))),
   textInput("hotelName", "Enter Hotel Name with Location"),
   dateInput("inputDate", "Select a Date:",min = Sys.Date()),
-  actionButton("hotelBtn", "Find Hotel"),
+  actionButton("hotelBtn", "Watch Nieghbor Hotel Room Price"),
   tableOutput("data"),
   span(textOutput("targetHotelRating"), style="color: blue;"),
   span(textOutput("targetHotelReview"), style="color: green;"),  
@@ -112,68 +111,84 @@ server <- function(input, output, session) {
       Sys.sleep(3)
       checkActive()
       driver$Runtime$evaluate(paste0('document.querySelector("textarea").value = "', googleSearchText,'"'))
-      queryGoogleSearchText1 <- queryGoogleSearchText2 <- queryGoogleSearchText3 <- NULL
+      # ! ?? is there any chance to add here XPath as a button !
+      queryGoogleSearchByAria <- queryGoogleSearchByClass <- NULL
       checkActive()
-      queryGoogleSearchText1 <- driver$Runtime$evaluate('document.querySelector(".gNO89b")')
+      queryGoogleSearchByAria <- driver$Runtime$evaluate('document.querySelector("input[aria-label=\'Google Search\']")')      
       checkActive()
-      queryGoogleSearchText2 <- driver$Runtime$evaluate('document.querySelector("input[aria-label=\'Google Search\']")')
-      
-      if((queryGoogleSearchText1$result$subtype) == "node"){
-        checkActive()
-        driver$Runtime$evaluate('document.querySelector(".gNO89b").click()')
-      }
-      else if(queryGoogleSearchText2$result$subtype == "node"){
+      queryGoogleSearchByClass <- driver$Runtime$evaluate('document.querySelector(".gNO89b")')
+      if(queryGoogleSearchByAria$result$subtype == "node"){
         checkActive()
         driver$Runtime$evaluate('document.querySelector("input[aria-label=\'Google Search\']").click()')
       }
-        
-      ### need to add js path
-      notify("Looking for hotel * type ... ", id = id)
+      else if((queryGoogleSearchByClass$result$subtype) == "node"){
+        checkActive()
+        driver$Runtime$evaluate('document.querySelector(".gNO89b").click()')
+      }      
+      
+      notify("Looking for hotel star * type ... ", id = id)
       Sys.sleep(3)
       # extract 3rd div of body of google page.
-      # divSecFromGooglePage has character(0) value sometimes !!!!!!!!!!!
+      # di vSecFromGooglePage has character(0) value sometimes !!!!!!!!!!!
+      divSecFromGooglePage <- NULL
+      # browser()
       checkActive()
-      divSecFromGooglePage <- tolower(as.character(driver$Runtime$evaluate('document.querySelector("div.fQtNvd").innerText')$result$value))
+      divSecFromGooglePage <- driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[3]/div/div/div/div[1]/div/div/div[1]/a\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value
+      # divSecFromGooglePage <- divSecFromGooglePage %>% as.character() %>% tolower()
       if(is.null(divSecFromGooglePage)){
         checkActive()
-        divSecFromGooglePage <- tolower(as.character(driver$Runtime$evaluate('document.querySelector("#Odp5De > div > div > div > div > div.F0toYe > div > div > div.hkrXre > div > div > div:nth-child(1) > a").innerText')$result$value))
+        # divSecFromGooglePage <- tolower(as.character(driver$Runtime$evaluate('document.evaluate(\'//*[@id="Odp5De"]/div/div/div/div/div[3]/div/div/div[1]/div/div/div[1]/a\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value))
+        divSecFromGooglePage <- driver$Runtime$evaluate('document.evaluate(\'//*[@id="Odp5De"]/div/div/div/div/div[3]/div/div/div[1]/div/div/div[1]/a\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value
+      }      
+      if(is.null(divSecFromGooglePage)){
+        checkActive()
+        # divSecFromGooglePage <- tolower(as.character(driver$Runtime$evaluate('document.querySelector("a[aria-labelledby=\'0_lbl\']").innerText')$result$value))
+        divSecFromGooglePage <- driver$Runtime$evaluate('document.querySelector("a[aria-labelledby=\'0_lbl\']").innerText')$result$value
       }
       if(is.null(divSecFromGooglePage)){
         checkActive()
-        divSecFromGooglePage <- tolower(as.character(driver$Runtime$evaluate('document.querySelector("a[aria-labelledby=\'0_lbl\']").innerText')$result$value))
+        # divSecFromGooglePage <- tolower(as.character(driver$Runtime$evaluate('document.querySelector("div.fQtNvd").innerText')$result$value))
+        divSecFromGooglePage <- driver$Runtime$evaluate('document.querySelector("div.fQtNvd").innerText')$result$value
       }
       # Extract the whole HTML page text and convert it to lowercase
+      # ! ?? is the use of body tag stable to return page whole page text. Can we add XPath next to it !
       checkActive()
       googlePageText <- tolower(as.character(driver$Runtime$evaluate('document.querySelector("body").innerText')$result$value))
       occurrenceFound <-  str_count(googlePageText, hotelNamePattern) ### May need to check properly. Because the occurance for the pullman hotel in riga old town is only 4 ###
       checkActive()
       Sys.sleep(3)
-      hotelStarString <- c("2-","3-","4-","5-")
+      hotelStarString <- c("2-star","3-star","4-star","5-star", "2 star","3 star","4 star","5 star")
       if(occurrenceFound >= 1){
         # Get splitHotelName by removing the city name Ex: splitHotelName = c("the", "pullman", "hotel", "Riga")
         # Output: splitHotelName = c("the", "pullman", "hotel")            
         splitHotelName <- splitHotelName[splitHotelName != city] ## Need to understand why we are removing city name!
         # Scanning top right corner of google page to look if there is any star type over there.
         checkActive()
-        checkHotelStarType <- driver$Runtime$evaluate('document.querySelector("#rhs > div.kp-wholepage-osrp > div.wPNfjb > div > div > div:nth-child(2) > div > div > div.nwVKo > div.loJjTe > div > span:nth-of-type(3)").innerText')
+        checkHotelStarType <- driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[3]\', document,null,XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')
+        
+        if(is.null(checkHotelStarType$result$value)){
+          checkActive()
+          checkHotelStarType <- driver$Runtime$evaluate('document.evaluate(\'//*[@id="rhs"]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[3]\', document,null,XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')
+        }
         if(is.null(checkHotelStarType$result$value)){
           checkActive()
           checkHotelStarType <- driver$Runtime$evaluate('document.querySelector("span.E5BaQ").innerText')  
         }
-         
         if(is.null(checkHotelStarType$result$value)){
           checkActive()
-          checkHotelStarType <- driver$Runtime$evaluate('document.querySelector("span.YhemCb").innerText') # For some hotel, both path and span can be change
+          checkHotelStarType <- driver$Runtime$evaluate('document.querySelector("span.YhemCb").innerText') # For some hotel, 'span.E5BaQ' is replaced by 'span.YhemCb' 
         }
-        # browser()
         # Extracting hoter STAR '*' type and review number from top right corner of google page but not hotel rating.
         if(!is.null(checkHotelStarType) && !is.null(checkHotelStarType$result$value) && !is.na(parse_number(checkHotelStarType$result$value)) && grepl(paste(hotelStarString, collapse = "|"), checkHotelStarType$result$value))
         {
           hotelStarType <- parse_number(checkHotelStarType$result$value)
           checkActive()
-          
           # For Hotel Rating
-          hotelRating <- driver$Runtime$evaluate('document.querySelector("#rhs > div.kp-wholepage-osrp > div.wPNfjb > div > div > div:nth-child(2) > div > div > div.nwVKo > div.loJjTe > div > span").innerText')$result$value
+          hotelRating <- driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[1]\', document,null,XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value
+          if(is.null(hotelRating)){
+            checkActive()
+            hotelRating <- driver$Runtime$evaluate('document.evaluate(\'//*[@id="rhs"]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[1]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value
+          }          
           if(is.null(hotelRating)){
             checkActive()
             hotelRating <- driver$Runtime$evaluate('document.querySelector("span.Aq14fc").innerText')$result$value
@@ -182,7 +197,15 @@ server <- function(input, output, session) {
           
           # For Hotel Reviews
           checkActive()
-          hotelReviews <- driver$Runtime$evaluate('document.querySelector("#rhs > div.kp-wholepage-osrp > div.wPNfjb > div > div > div:nth-child(2) > div > div > div.nwVKo > div.loJjTe > div > a").innerText')$result$value
+          #browser()
+          # !! TO DO 2 checked DONE 
+          hotelReviews <- driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/a\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value
+          if(is.null(hotelReviews)){
+            checkActive()
+            driver$Runtime$evaluate('document.evaluate(\'//*[@id="rhs"]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/a\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value
+            
+          }
+          
           if(is.null(hotelReviews)){
             checkActive()
             hotelReviews <- driver$Runtime$evaluate('document.querySelector("a.hqzQac").innerText')$result$value
@@ -192,22 +215,36 @@ server <- function(input, output, session) {
         # Extracting hotel STAR * type, rating and review number from the 3rd div of body of google page.
         else if(!is.null(divSecFromGooglePage) && length(divSecFromGooglePage) > 0)
         {
+          #browser() 
           hotelStarType <- findHotelStarType(splitHotelName, divSecFromGooglePage, TRUE)     
           checkActive()
-          
-          hotelRating <- driver$Runtime$evaluate('document.querySelector("#Odp5De > div > div > div > div > div.F0toYe > div > div > div.hkrXre > div > div > div:nth-child(1) > a > div > div > div:nth-child(2) > div > span.Y0A0hc > span").innerText')$result$value
+          # browser()
+          # !! TO DO 4 done 
+          hotelRating <- driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[3]/div/div/div/div[1]/div/div/div[1]/a/div/div/div[2]/div/span[1]/span[1]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value
+          if(is.null(hotelRating)){
+            #browser()
+            # TO DO 5 done 
+            hotelRating <- driver$Runtime$evaluate('document.evaluate(\'//*[@id="0_lbl"]/div[2]/div/span[1]/span[1]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value
+          }
           if(is.null(hotelRating)){
             checkActive()
             hotelRating <- driver$Runtime$evaluate('document.querySelector("span.yi40Hd").innerText')$result$value
           }
           hotelRating <- parse_number(hotelRating)
-          
+          #browser()
           checkActive()
-          hotelReviews <- driver$Runtime$evaluate('document.querySelector("#Odp5De > div > div > div > div > div.F0toYe > div > div > div.hkrXre > div > div > div:nth-child(1) > a > div > div > div:nth-child(2) > div > span.Y0A0hc > span:nth-of-type(3)").innerText')$result$value
+          # done browser
+          hotelReviews <- driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[3]/div/div/div/div[1]/div/div/div[1]/a/div/div/div[2]/div/span[1]/span[3]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value
+          if(is.null(hotelReviews)){
+            checkActive()
+            hotelReviews <- driver$Runtime$evaluate('document.evaluate(\'//*[@id="0_lbl"]/div[2]/div/span[1]/span[3]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value
+          }
+          
           if(is.null(hotelReviews)){
             checkActive()
             hotelReviews <- driver$Runtime$evaluate('document.querySelector("span.RDApEe").innerText')$result$value
           }
+          
           
           if(grepl("k", hotelReviews, ignore.case = TRUE))
             hotelReviews <- parse_number(hotelReviews) * 1000
@@ -217,76 +254,111 @@ server <- function(input, output, session) {
         # Finding hoter STAR '*' type from body of google page. However, it is not possible to find review number and rating.
         # !!! How do we set the review and rating then !!!
         # Input: The Social Hub Eindhoven. Output: checkHotelStarType$result$type = "string", checkHotelStarType$result$value = "Hotel"
-        else if(is.na(parse_number(checkHotelStarType$result$value)) || !grepl(paste(hotelStarString, collapse = "|"), checkHotelStarType$result$value))
+        # In special case when checkHotelStarType is not null but hotelRating and hotelReviews are null. Example: The Social Hub Eindhoven        
+        else if(is.null(hotelRating) && is.null(hotelReviews) && !is.null(checkHotelStarType$result$value) && !is.na(parse_number(checkHotelStarType$result$value)) && !grepl(paste(hotelStarString, collapse = "|"), checkHotelStarType$result$value))
+        {
           hotelStarType <- findHotelStarType(splitHotelName, googlePageText, FALSE) 
+          # For Hotel Rating
+          checkActive()
+          hotelRating <- driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[1]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value
+          
+          if(is.null(hotelRating)){
+            checkActive()
+            hotelRating <- driver$Runtime$evaluate('document.evaluate(\'//*[@id="rhs"]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[1]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value
+            
+          }
+          if(is.null(hotelRating)){
+            checkActive()
+            hotelRating <- driver$Runtime$evaluate('document.querySelector("span.Aq14fc").innerText')$result$value
+          }
+          hotelRating <- parse_number(hotelRating)
+          
+          # For Hotel Reviews
+          checkActive()
+          #browser()
+          hotelReviews <- driver$Runtime$evaluate('document.evaluate(\'//*[@id="rhs"]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[3]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value
+          if(is.null(hotelReviews)){
+            checkActive()
+            hotelReviews <- driver$Runtime$evaluate('document.querySelector("a[data-async-trigger=\'reviewDialog\']").innerText')$result$value
+          }
+          if(is.null(hotelReviews)){
+            checkActive()
+            driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/a\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value
+            
+          }
+          if(is.null(hotelReviews)){
+            checkActive()
+            #browser()
+            hotelReviews <- driver$Runtime$evaluate('document.querySelector("a.hqzQac").innerText')$result$value
+          }
+          hotelReviews <- parse_number(hotelReviews)          
+        }
       }   
-      # In special case when checkHotelStarType is not null but hotelRating and hotelReviews are null. Example: The Social Hub Eindhoven
-      if ((!is.null(checkHotelStarType$result$value)) && is.null(hotelRating) && is.null(hotelReviews)) {
-        # For Hotel Rating
-        checkActive()
-        hotelRating <- driver$Runtime$evaluate('document.querySelector("#rhs > div.kp-wholepage-osrp > div.wPNfjb > div > div > div:nth-child(2) > div > div > div.nwVKo > div.loJjTe > div > span").innerText')$result$value
-        if(is.null(hotelRating)){
-          checkActive()
-          hotelRating <- driver$Runtime$evaluate('document.querySelector("span.Aq14fc").innerText')$result$value
-        }
-        hotelRating <- parse_number(hotelRating)
-
-        # For Hotel Reviews
-        checkActive()
-        hotelReviews <- driver$Runtime$evaluate('document.querySelector("#rhs > div.kp-wholepage-osrp > div.wPNfjb > div > div > div:nth-child(2) > div > div > div.nwVKo > div.loJjTe > div > a").innerText')$result$value
-        if(is.null(hotelReviews)){
-          checkActive()
-          hotelReviews <- driver$Runtime$evaluate('document.querySelector("a.hqzQac").innerText')$result$value
-        }
-        if(is.null(hotelReviews)){
-          checkActive()
-          hotelReviews <- driver$Runtime$evaluate('document.querySelector("a[data-async-trigger=\'reviewDialog\']").innerText')$result$value
-        }
-        hotelReviews <- parse_number(hotelReviews)
-      }
       
       if(!is.null(hotelStarType)){
         searchTextForNeighborHotel <- paste0(hotelStarType, " star hotel in ", city)
         checkActive()
+        #browser()
         driver$Runtime$evaluate(paste0('document.querySelector("textarea").value = "', searchTextForNeighborHotel,'"'))
-        browser()
         checkActive()
-        searchButton1 <- driver$Runtime$evaluate('document.querySelector("#tsf > div:nth-child(1) > div.A8SBwf > div.RNNXgb > button")')
+        #browser()
+        searchButton1 <- driver$Runtime$evaluate('document.evaluate(\'/html/body/div[3]/div[2]/form/div[1]/div[1]/div[2]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+        checkActive
+        searchButton2 <- driver$Runtime$evaluate('document.evaluate(\'//*[@id="tsf"]/div[1]/div[1]/div[2]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+        
         checkActive()
-        searchButton2 <- driver$Runtime$evaluate('document.querySelector("button.Tg7LZd")')
+        searchButton3 <- driver$Runtime$evaluate('document.querySelector("button.Tg7LZd")')
         checkActive()
-        searchButton3 <- driver$Runtime$evaluate('document.querySelector("button[aria-label=\'Search\']")')
+        searchButton4 <- driver$Runtime$evaluate('document.querySelector("button[aria-label=\'Search\']")')
+        
+        
+        
         if(searchButton1$result$subtype == "node"){
-          driver$Runtime$evaluate('document.querySelector("#tsf > div:nth-child(1) > div.A8SBwf > div.RNNXgb > button").click()')
+          driver$Runtime$evaluate('document.evaluate(\'/html/body/div[3]/div[2]/form/div[1]/div[1]/div[2]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
+          
         }else if(searchButton2$result$subtype == "node"){
-          driver$Runtime$evaluate('document.querySelector("button.Tg7LZd").click()')
-        }else if(searchButton3$result$subtype == "node"){
+          driver$Runtime$evaluate('document.evaluate(\'//*[@id="tsf"]/div[1]/div[1]/div[2]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
+          
+          
+        }else if(searchButton4$result$subtype == "node"){
           driver$Runtime$evaluate('document.querySelector("button[aria-label=\'Search\']").click()')
+          
+        }else if(searchButton3$result$subtype=="node"){
+          driver$Runtime$evaluate('document.querySelector("button.Tg7LZd").click()')
         }
         Sys.sleep(2)
         
         notify(paste0("Searching neighbor hotels which are ", hotelStarType," star type"), id = id)
         
-        # Click on the drop-down menu and check if it is exist by guestDropdownBtn$result$objectId 
+        # Click on the drop-down menu and check if it is exist by guestDropdownBtn$result$objectId
         checkActive()
-        guestDropdownBtn1 <- driver$Runtime$evaluate('document.querySelector("#Odp5De > div > div > div > div > div.uR9mR > div.j6xmKe > div > g-popup > div:nth-child(1) > div > div > div > div")')
+        browser()
+        guestDropdownBtn1 <- driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[2]/div[3]/div/g-popup/div[1]/div/div/div/div[3]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
         checkActive()
-        guestDropdownBtn2 <- driver$Runtime$evaluate('document.querySelector("div.R2w7Jd")')
+        guestDropdownBtn2 <- driver$Runtime$evaluate('document.evaluate(\'//*[@id="Odp5De"]/div/div/div/div/div/div[2]/div[3]/div/g-popup/div[1]/div/div/div/div[3]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
         checkActive()
-        guestDropdownBtn3 <- driver$Runtime$evaluate('document.querySelector("div[aria-label=\'Select number of guests. Current selection is 2 guests\']")')
+        guestDropdownBtn3 <- driver$Runtime$evaluate('document.querySelector("div.R2w7Jd")')
+        checkActive()
+        guestDropdownBtn4 <- driver$Runtime$evaluate('document.querySelector("div[aria-label=\'Select number of guests. Current selection is 2 guests\']")')
         Sys.sleep(3)  
+        # browser()
+        
         
         # Click to open the drop down-menu.
         if(guestDropdownBtn1$result$subtype == "node"){
           checkActive()
-          driver$Runtime$evaluate('document.querySelector("#Odp5De > div > div > div > div > div.uR9mR > div.j6xmKe > div > g-popup > div:nth-child(1) > div > div > div > div").click()')
+          driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[2]/div[3]/div/g-popup/div[1]/div/div/div/div[3]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
+          
         }else if(guestDropdownBtn2$result$subtype == "node"){
           checkActive()
-          driver$Runtime$evaluate('document.querySelector("div.R2w7Jd").click()')
-        }
-        }else if(guestDropdownBtn3$result$subtype == "node"){
+          driver$Runtime$evaluate('document.evaluate(\'//*[@id="Odp5De"]/div/div/div/div/div/div[2]/div[3]/div/g-popup/div[1]/div/div/div/div[3]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
+        }else if(guestDropdownBtn4$result$subtype=="node"){
           checkActive()
           driver$Runtime$evaluate('document.querySelector("div[aria-label=\'Select number of guests. Current selection is 2 guests\']").click()')
+        }else if(guestDropdownBtn3$result$subtype == "node"){
+          checkActive()
+          driver$Runtime$evaluate('document.querySelector("div.R2w7Jd").click()')
+          
         }
         
         if(is.null(guestDropdownBtn1$result$objectId) && is.null(guestDropdownBtn2$result$objectId) && is.null(guestDropdownBtn3$result$objectId)){
@@ -296,31 +368,131 @@ server <- function(input, output, session) {
         }else{
           # Click to select guest number 1 from the drop-down menu.
           checkActive()
-          driver$Runtime$evaluate('document.querySelector("div.JWXKNd").click()')
+          #browser()
+          button1 <- driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[2]/div[3]/div/g-popup/div[2]/ul/li[1]/a/div\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+          checkActive()
+          button2<-driver$Runtime$evaluate('document.querySelector("div.JWXKNd")')
+          checkActive()
+          #browser()
+          button3<-driver$Runtime$evaluate('document.evaluate(\'//*[@id="Odp5De"]/div/div/div/div/div[2]/div[3]/div/g-popup/div[2]/ul/li[1]/a/div\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+          
+          if(button1$result$subtype=="node"){
+            checkActive()
+            driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[2]/div[3]/div/g-popup/div[2]/ul/li[1]/a/div\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
+            
+          }else if(button3$result$subtype=="node"){
+            checkActive()
+            driver$Runtime$evaluate('document.evaluate(\'//*[@id="Odp5De"]/div/div/div/div/div[2]/div[3]/div/g-popup/div[2]/ul/li[1]/a/div\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
+          }else if(button2$result$subtype=="node"){
+            checkActive()
+            driver$Runtime$evaluate('document.querySelector("div.JWXKNd").click()')
+            
+          }
+          
           notify("Clicking on the dropdown button to select a number of guest ...", id = id)        
           Sys.sleep(3)
           
           hotelRoomType <- c("Single", "Double", "Triple", "Family")
           # Click to open filter tab in the right side of the window.
           checkActive()
-          driver$Runtime$evaluate('document.querySelector("#yDmH0d > c-wiz.zQTmif.SSPGKf.AglWE > div > c-wiz > div.dTQsx.gBIxsf > div.MawWP > div.wMMMNd > c-wiz > div > div > div.E4DaWc.AJr5uf > div > div.AN2bF > div.mpSL5d > div > div > div.wpMGDb.Vz4hIc.Vy4Vcc > div > button").click()')
+          #browser()
+          filterButton1<-driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[2]/div[1]/div/div/div[1]/div/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+          checkActive()
+          filterButton2<-driver$Runtime$evaluate('document.querySelector("button.cd29Sd")')
+          checkActive()
+          filterButton3<-driver$Runtime$evaluate('document.querySelector("button[aria-label=\'All filters, 1 filter selected\']")')
+          checkActive()
+          filterButton4 <- driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[2]/div[1]/div/div/div[1]/div/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+          
+          
+          if(filterButton4$result$subtype=="node"){
+            checkActive()
+            driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[2]/div[1]/div/div/div[1]/div/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
+          }else if(filterButton1$result$subtype=="node"){
+            checkActive()
+            driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[2]/div[1]/div/div/div[1]/div/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
+            
+          }else if(filterButton3$result$subtype=="node"){
+            checkActive()
+            driver$Runtime$evaluate('document.querySelector("document.querySelector("button[aria-label=\'All filters, 1 filter selected\']").click()')
+          }else if(filterButton2$result$subtype=="node"){
+            checkActive()
+            driver$Runtime$evaluate('document.querySelector("button.cd29Sd").click()')
+          }
           notify("Opening filter tab to filter neighbor hotels ...", id = id)
           Sys.sleep(3)
           
           # Click to select relevant review button from the filter tab.
           checkActive()
-          driver$Runtime$evaluate('document.querySelector("input[value=\'13\']").click()')
+          #browser()
+          reviewBtn1 <- driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[2]/div[1]/div/div[2]/div[3]/div/div[2]/div/div[1]/div/div/section[1]/div/div/div/div[4]/label\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+          checkActive()
+          reviewBtn2 <- driver$Runtime$evaluate('document.querySelector("input[value=\'13\']")')
+          checkActive()
+          reviewBtn3 <- driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[2]/div[1]/div/div[2]/div[3]/div/div[2]/div/div[1]/div/div/section[1]/div/div/div/div[4]/label\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+          
+          if(reviewBtn3$result$subtype=="node"){
+            checkActive()
+            driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[2]/div[1]/div/div[2]/div[3]/div/div[2]/div/div[1]/div/div/section[1]/div/div/div/div[4]/label\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
+          }else if(reviewBtn1$result$subtype=="node"){
+            checkActive()
+            driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[2]/div[1]/div/div[2]/div[3]/div/div[2]/div/div[1]/div/div/section[1]/div/div/div/div[4]/label\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
+          }else if(reviewBtn2$result$subtype=="node"){
+            checkActive()
+            driver$Runtime$evaluate('document.querySelector("input[value=\'13\']").click()')
+          }
+          
+          
           notify("Selecting hotels which has relevant reviews and ratings as yours ...", id = id)
           Sys.sleep(3)
           
           # Click to close filter tab.
           checkActive()
-          driver$Runtime$evaluate('document.querySelector("#yDmH0d > c-wiz.zQTmif.SSPGKf.AglWE > div > c-wiz > div.dTQsx.gBIxsf > div.MawWP > div.wMMMNd > c-wiz > div > div > div.E4DaWc.AJr5uf > div > div.AN2bF > div.mpSL5d > div > div.dq93Ae.lqK3vd.cmKkVe.eXUIm > div.xkSIab > div > div.pD9FRb > div.i73Eid.I1vvIb > span > button").click()')
+          #browser()
+          filter1<-driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[2]/div[1]/div/div[2]/div[3]/div/div[1]/div[2]/span/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+          checkActive()
+          filter2<-driver$Runtime$evaluate('document.querySelector("button.HJuSVb")')
+          checkActive()
+          filter3<-driver$Runtime$evaluate('document.querySelector("button[aria-label=\'Close dialogue\']")')
+          checkActive()
+          filter4 <- driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[2]/div[1]/div/div[2]/div[3]/div/div[1]/div[2]/span/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+          
+          if(filter4$result$subtype=="node"){
+            checkActive()
+            driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[2]/div[1]/div/div[2]/div[3]/div/div[1]/div[2]/span/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
+            
+          }else if(filter1$result$subtype=="node"){
+            checkActive()
+            driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[2]/div[1]/div/div[2]/div[3]/div/div[1]/div[2]/span/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
+          }else if(filter3$result$subtype=="node"){
+            checkActive()
+            driver$Runtime$evaluate('document.querySelector("button[aria-label=\'Close dialogue\']").click()')
+          }else if(filter2$result$subtype=="node"){
+            checkActive()
+            driver$Runtime$evaluate('document.querySelector("button.HJuSVb").click()')
+          }
           Sys.sleep(3)
           userInputDate <- input$inputDate
           # Click to open date picker.
           checkActive()
-          driver$Runtime$evaluate('document.querySelector("input[placeholder=\'Check-in\']").click()')
+          #browser()
+          placeHolder1<-driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[2]/div/div/div[2]/div[1]/div/input\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+          
+          checkActive()
+          placeHolder3 <- driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[2]/div/div/div[2]/div[1]/div/input\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+          
+          checkActive()
+          placeHolder2<-driver$Runtime$evaluate('document.querySelector("input[placeholder=\'Check-in\']")')
+          if(placeHolder3$result$subtype=="node"){
+            checkActive()
+            driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[2]/div/div/div[2]/div[1]/div/input\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
+          }else if(placeHolder1$result$subtype=="node"){
+            checkActive()
+            driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[2]/div/div/div[2]/div[1]/div/input\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
+          }else if(placeHolder2$result$subtype=="node"){
+            checkActive()
+            driver$Runtime$evaluate('document.querySelector("input[placeholder=\'Check-in\']").click()')
+          } 
           notify("Opening date picker ...", id = id)
           Sys.sleep(3)
           # Click to select check-in date from date picker.
@@ -338,15 +510,34 @@ server <- function(input, output, session) {
           # Retrieve current date from date picker.
           checkActive()
           checkInDate <- driver$Runtime$evaluate('document.querySelector(".HDland").getAttribute("data-iso")')$result$value
+          if(is.null(checkInDate)){
+            checkInDate<-driver$Runtime$evaluate('document.querySelector("div[jsname=\'mG3Az\'][aria-selected=\'true\']").getAttribute("data-iso")')$result$value
+          }
           
           # Click to submit check-in and check-out date.
           checkActive()
-          driver$Runtime$evaluate('document.querySelector("#ow37 > div.fSZK0b.DzHPKc.iWO5td > div > div.g3VIld.pqCVeb.XkOXPd.yXO5Pd.k57Mic.J9Nfi.iWO5td > div.rSonUc > div > button.VfPpkd-LgbsSe.VfPpkd-LgbsSe-OWXEXe-k8QpJ.VfPpkd-LgbsSe-OWXEXe-dgl2Hf.nCP5yc.AjY5Oe.DuMIQc.LQeN7.z18xM.rtW97.Q74FEc.D9Ipie > div.VfPpkd-RLmnJb").click()')
+          #browser()
+          submitBtn1 <- driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[2]/div/div[2]/div/div[2]/div[4]/div/button[2]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+          checkActive()
+          submitBtn2 <- driver$Runtime$evaluate('document.querySelector("button[jsname=\'iib5kc\']")')
+          checkActive()
+          submitBtn3 <- driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[2]/div/div[2]/div/div[2]/div[4]/div/button[2]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+          
+          if(submitBtn3$result$subtype=="node"){
+            checkActive()
+            driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[2]/div/div[2]/div/div[2]/div[4]/div/button[2]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
+          }else if(submitBtn1$result$subtype=="node"){
+            checkActive()
+            driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[2]/div/div[2]/div/div[2]/div[4]/div/button[2]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
+          }else if(submitBtn2$result$subtype=="node"){
+            checkActive()
+            driver$Runtime$evaluate('document.querySelector("button[jsname=\'iib5kc\']").click()')
+          } 
           notify("Submit date picker...", id = id)
           Sys.sleep(3)
           
           # Collect hotel prices, ratings and number of reviews from the page
-          roomPrices <- list()
+          neighborHotelDetails <- list()
           for(room in hotelRoomType){
             
             # Collecting room price of neighbor hotels from the page.
@@ -426,70 +617,116 @@ server <- function(input, output, session) {
               return(aElement)
             })
             
-            roomPrices[[room]][["Prices"]] <- unlist(neighborHotelRoomPrices)
-            roomPrices[[room]][["Ratings"]] <- unlist(neighborHotelRatings)
-            roomPrices[[room]][["Reviews"]] <- unlist(neighborHotelReviews)
-            roomPrices[[room]][["HotelName"]] <- unlist(neighborHotelNames)
+            neighborHotelDetails[[room]][["Prices"]] <- unlist(neighborHotelRoomPrices)
+            neighborHotelDetails[[room]][["Ratings"]] <- unlist(neighborHotelRatings)
+            neighborHotelDetails[[room]][["Reviews"]] <- unlist(neighborHotelReviews)
+            neighborHotelDetails[[room]][["HotelName"]] <- unlist(neighborHotelNames)
             
             if(room == "Family"){
               notify("Ploting the optimized price for each types of room ...", id = id)
               Sys.sleep(2)
               break
             }
-            
             # Click on the '+' button to increase the guest number by 1. !by following Nr. 281 Line!
             checkActive()
-            driver$Runtime$evaluate('document.querySelector("#yDmH0d > c-wiz.zQTmif.SSPGKf.AglWE > div > c-wiz > div.dTQsx.gBIxsf > div.MawWP > div.wMMMNd > c-wiz > div > div > div.E4DaWc.AJr5uf > div > div.tbDMNe > div.YFfNHd > div > div > div > div.cQnuXe.k0gFV > div").click()')
+            #browser()
+            buttonToSubmit1<-driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[1]/div\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+            checkActive()
+            buttonToSubmit2<-driver$Runtime$evaluate('document.querySelector("div.r0Ogod")')  
+            checkActive()
+            buttonToSubmit4 <- driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[1]/div\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+            checkActive()
+            buttonToSubmit3<-driver$Runtime$evaluate(paste0('document.querySelector("[aria-label=\'Number of travellers. Current number of travellers is ', i, '.\']")'))        
+            if(buttonToSubmit4$result$subtype=="node"){
+              checkActive()
+              driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[1]/div\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
+            }else if(buttonToSubmit1$result$subtype=="node"){
+              checkActive()
+              driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[1]/div\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
+            }else if(buttonToSubmit3$result$subtype=="node"){
+              checkActive()
+              driver$Runtime$evaluate(paste0('document.querySelector("[aria-label=\'Number of travellers. Current number of travellers is ', i, '.\']").click()'))
+            }else if(buttonToSubmit2$result$subtype=="node"){
+              checkActive()
+              driver$Runtime$evaluate('document.querySelector("div.r0Ogod").click()')  
+            } 
+            i <- i+1
+            
             notify("Clicking on the '+' button to increase the guest number by 1 ...", id = id)
             Sys.sleep(3)
             #browser()
             checkActive()
-            driver$Runtime$evaluate('document.querySelector("button[jsname=\'TdyTDe\']").click()')
+            increaseButton1 <- driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[2]/div[2]/div[1]/div[1]/div[2]/div/span[3]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+            checkActive()
+            increaseButton2 <- driver$Runtime$evaluate('document.querySelector("button.VfPpkd-ksKsZd-mWPk3d")')
+            checkActive()
+            increaseButton3<-driver$Runtime$evaluate('document.querySelector("button[aria-label=\'Add adult\']")')
+            checkActive()
+            increaseButton4 <- driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[2]/div[2]/div[1]/div[1]/div[2]/div/span[3]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+            
+            if(increaseButton4$result$subtype=="node"){
+              checkActive()
+              driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[2]/div[2]/div[1]/div[1]/div[2]/div/span[3]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
+            }else if(increaseButton1$result$subtype=="node"){
+              checkActive()
+              driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[2]/div[2]/div[1]/div[1]/div[2]/div/span[3]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
+            }else if(increaseButton3$result$subtype=="node"){
+              checkActive()
+              driver$Runtime$evaluate('document.querySelector("button[aria-label=\'Add adult\']").click()')
+            }else if(increaseButton2$result$subtype=="node"){
+              checkActive()
+              driver$Runtime$evaluate('document.querySelector("button.VfPpkd-ksKsZd-mWPk3d").click()')
+            } 
             notify(paste0("Looking for the price of ",room," room ..."), id = id)
             Sys.sleep(2)
             
             # Click on the submit button
             checkActive()
-            driver$Runtime$evaluate('document.querySelector("button[jsname=\'kZlJze\']").click()')            
+            #browser()
+            submitBtn1 <- driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[2]/div[2]/div[2]/div[2]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+            submitBtn2 <- driver$Runtime$evaluate('document.querySelector("button.TkZUKc ")')            
+            submitBtn3 <- driver$Runtime$evaluate('document.querySelector("button[jsname=\'kZlJze\']")')   
+            submitBtn4 <- driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[2]/div[2]/div[2]/div[2]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+            
+            if(submitBtn4$result$subtype=="node"){
+              checkActive()
+              driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[2]/div[2]/div[2]/div[2]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
+            }else if(submitBtn1$result$subtype=="node"){
+              checkActive()
+              driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[2]/div[2]/div[2]/div[2]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
+            }else if(submitBtn3$result$subtype=="node"){
+              checkActive()
+              driver$Runtime$evaluate('document.querySelector("button[jsname=\'kZlJze\']").click()')   
+            }else if(submitBtn2$result$subtype=="node"){
+              checkActive()
+              driver$Runtime$evaluate('document.querySelector("button.TkZUKc ").click()')   
+            } 
             Sys.sleep(3)
           }
           
-          if(length(roomPrices$Single$Prices) > 0 || length(roomPrices$Double$Prices) > 0 || length(roomPrices$Triple$Prices) > 0 || length(roomPrices$Family$Prices) > 0){
-            prices_df <- data.frame()
+          if(length(neighborHotelDetails$Single$Prices) > 0 || length(neighborHotelDetails$Double$Prices) > 0 || length(neighborHotelDetails$Triple$Prices) > 0 || length(neighborHotelDetails$Family$Prices) > 0){
+            neighHotelDetailsForAllRoomType <- data.frame()
             for(room in hotelRoomType){
-              if(length(roomPrices[[room]]) > 0){
-                tempPriceDf <- as.data.frame(do.call(cbind, roomPrices[[room]]))
-                tempPriceDf <- cbind(City=city, Type=hotelStarType, RoomType = room, tempPriceDf)
-                #tempPriceDf <- cbind(City=cityName, Type=hotelType, hotelRoomType = room, tempPriceDf)
-                
-                prices_df <- rbind(prices_df, tempPriceDf)
-                #browser()
+              if(length(neighborHotelDetails[[room]]) > 0){
+                neighHotelDetailsForARoomType <- as.data.frame(do.call(cbind, neighborHotelDetails[[room]]))
+                neighHotelDetailsForARoomType <- cbind(City=city, Type=hotelStarType, RoomType = room, neighHotelDetailsForARoomType)
+                neighHotelDetailsForAllRoomType <- rbind(neighHotelDetailsForAllRoomType, neighHotelDetailsForARoomType)
               }
             }
-            # Create final table.
-            prices_df <- apply(prices_df, c(1,2), as.character)
-            # A empty row is eliminated.
-            prices_df <- subset(prices_df, !apply(prices_df, 1, function(row) any(row == "")))
-            prices_df <- prices_df %>% as.data.frame()
-            prices_df$Ratings <- parse_number(prices_df$Ratings)
+            neighHotelDetailsForAllRoomType <- neighHotelDetailsForAllRoomType %>% filter(!is.na(parse_number(neighHotelDetailsForAllRoomType$Prices)))
+            neighHotelDetailsForAllRoomType$Ratings <- parse_number(neighHotelDetailsForAllRoomType$Ratings)
             
             targetHotel <- gsub("\\bin\\s.*", "", input$hotelName, ignore.case = TRUE)
-            # browser()
-            
-            makeNetworkGraph(prices_df, targetHotel, hotelRating, hotelReviews, checkInDate, output)
-            
-            #output$data <- renderTable(prices_df)
-            #output$targetHotelRating <- renderText(paste0("Target Hotel Rating : ",hotelRating))
-            #output$targetHotelReview <- renderText(paste0("Target Hotel Reviews : ",hotelReviews))
-            #output$variables <- renderPrint("Target Hotel/Hostel reviews : ",isExistingHotelReviews)
+            currencySymbol = NULL
+            currencySymbol <- str_remove_all(neighHotelDetailsForAllRoomType$Prices[1],"[0-9.,]")
+            makeNetworkGraph(neighHotelDetailsForAllRoomType, targetHotel, hotelRating, hotelReviews, checkInDate, currencySymbol, output)
           }else{
             output$notFound <- renderText("Not found any competitor hotel!")
             Waiter$new(html = spin_wave())$hide()
           }
           Waiter$new(html = spin_wave())$hide()
         }
-      }
-      else{
+      }else{
         output$notFound <- renderText("Not found any hotel type!")
         Waiter$new(html = spin_wave())$hide()
       }      

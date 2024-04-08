@@ -1,4 +1,4 @@
-makeNetworkGraph <- function(prices_df, targetHotel, targetHotelRatings, targetHotelReviews, checkInDate, output) {
+makeNetworkGraph <- function(prices_df, targetHotel, targetHotelRatings, targetHotelReviews, checkInDate, currencySymbol, output) {
   roomType <- c("Single", "Double", "Triple", "Family")
   hotelInfo <- prices_df
   
@@ -44,7 +44,7 @@ makeNetworkGraph <- function(prices_df, targetHotel, targetHotelRatings, targetH
   # browser()
   # Add target hotel optimize price to splitNighHotelOnRoomType list
   targetPlusNighbHotelSplitOnRoomType <- lapply(splitNeighborHotelOnRoomType, function(hotel){
-    hotel <- rbind(tibble(HotelName = paste0("",pricesOfTargetHotel[[unique(hotel$RoomType)]]), Ratings  = "" , Prices = "", Reviews = "", RoomType = unique(hotel$RoomType)), hotel)
+    hotel <- rbind(tibble(HotelName = paste0(currencySymbol, pricesOfTargetHotel[[unique(hotel$RoomType)]]), Ratings  = "" , Prices = "", Reviews = "", RoomType = unique(hotel$RoomType)), hotel)
     # take upto 10 hotel
     hotel <- hotel %>% head(10) 
     
