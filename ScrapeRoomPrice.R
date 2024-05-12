@@ -25,7 +25,7 @@ ui <- fluidPage(
   shiny::tags$head(shiny::tags$script(HTML(js))),
   textInput("hotelName", "Enter Hotel Name with Location"),
   dateInput("inputDate", "Select a Date:",min = Sys.Date()),
-  actionButton("hotelBtn", "Watch Nieghbor Hotel Room Price"),
+  actionButton("hotelBtn", "Optimize Nieghbor Hotel Room Price"),
   tableOutput("data"),
   span(textOutput("targetHotelRating"), style="color: blue;"),
   span(textOutput("targetHotelReview"), style="color: green;"),  
@@ -34,7 +34,7 @@ ui <- fluidPage(
   shiny::tags$head(
     shiny::tags$meta(name = "viewport", content = "width=device-width, initial-scale=0.5")
   ),
-  uiOutput("graph")
+  uiOutput("graphAndTable")
 )
 
 server <- function(input, output, session) {
@@ -101,10 +101,10 @@ server <- function(input, output, session) {
       # Ex2: Input2: splitHotelName = "the pullman hotel in riga", Output: searchText = "the pullman hotel in riga"
       googleSearchText <- paste0(paste(unique(tolower(splitHotelName)), collapse = " "), " in ", city)
       hotelNamePattern <- findHotelNamePattern(input$hotelName, splitHotelName, googleSearchText)
-      
       # ---------------- Plugin - Point ------------------------ #
       # checkActive() check the status of current session. If current session is inactive, then make it active. 
       checkHotelStarType <- hotelStarType <- hotelReviews <- hotelRating <- divSecFromGooglePage <- NULL
+      Sys.sleep(3)
       checkActive()
       driver$Page$navigate("https://www.google.com")
       notify("Navigating a browser http://.... on the device", id = id)
@@ -178,6 +178,7 @@ server <- function(input, output, session) {
           checkActive()
           checkHotelStarType <- driver$Runtime$evaluate('document.querySelector("span.YhemCb").innerText') # For some hotel, 'span.E5BaQ' is replaced by 'span.YhemCb' 
         }
+        # browser()
         # Extracting hoter STAR '*' type and review number from top right corner of google page but not hotel rating.
         if(!is.null(checkHotelStarType) && !is.null(checkHotelStarType$result$value) && !is.na(parse_number(checkHotelStarType$result$value)) && grepl(paste(hotelStarString, collapse = "|"), checkHotelStarType$result$value))
         {
@@ -284,7 +285,6 @@ server <- function(input, output, session) {
           if(is.null(hotelReviews)){
             checkActive()
             driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/a\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value
-            
           }
           if(is.null(hotelReviews)){
             checkActive()
@@ -326,22 +326,26 @@ server <- function(input, output, session) {
         }else if(searchButton3$result$subtype=="node"){
           driver$Runtime$evaluate('document.querySelector("button.Tg7LZd").click()')
         }
-        Sys.sleep(2)
+        Sys.sleep(3)
         
         notify(paste0("Searching neighbor hotels which are ", hotelStarType," star type"), id = id)
         
         # Click on the drop-down menu and check if it is exist by guestDropdownBtn$result$objectId
         checkActive()
-        browser()
+        # browser()
+        Sys.sleep(3)  
         guestDropdownBtn1 <- driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[2]/div[3]/div/g-popup/div[1]/div/div/div/div[3]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
         checkActive()
+        #Sys.sleep(3)  
         guestDropdownBtn2 <- driver$Runtime$evaluate('document.evaluate(\'//*[@id="Odp5De"]/div/div/div/div/div/div[2]/div[3]/div/g-popup/div[1]/div/div/div/div[3]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
         checkActive()
+        #Sys.sleep(3)  
         guestDropdownBtn3 <- driver$Runtime$evaluate('document.querySelector("div.R2w7Jd")')
         checkActive()
+        #Sys.sleep(3)  
         guestDropdownBtn4 <- driver$Runtime$evaluate('document.querySelector("div[aria-label=\'Select number of guests. Current selection is 2 guests\']")')
         Sys.sleep(3)  
-        # browser()
+        #browser()
         
         
         # Click to open the drop down-menu.
@@ -543,84 +547,129 @@ server <- function(input, output, session) {
             # Collecting room price of neighbor hotels from the page.
             notify(paste0("Scanning ",room, " room price of neighbor hotels ..."), id = id)
             Sys.sleep(2)
-            checkActive()
-            priceElement <- driver$Runtime$evaluate(
-              'var elements = document.querySelectorAll(".K1smNd > c-wiz[jsrenderer=\'hAbFdb\'] .PwV1Ac");
+            
+            # collect hotel prices, ratings and number of review
+            neighborHotelRoomPricesList <- list()
+            neighborHotelRatingsList <- list()
+            neighborHotelReviewsList <- list()
+            neighborHotelNamesList <- list()
+            
+            numberOfPageToScan <- 2
+            
+            for(i in 1:numberOfPageToScan){
+              checkActive()
+              priceElement <- driver$Runtime$evaluate(
+                'var elements = document.querySelectorAll(".K1smNd > c-wiz[jsrenderer=\'hAbFdb\'] .PwV1Ac");
                  var elementPrices = [];
                  elements.forEach(function(element) {
                    elementPrices.push(element.innerText);
                  });
                  elementPrices.join("@");'
-            )
-            
-            splittedPriceElements <- unlist(strsplit(priceElement$result$value, "@"))
-            
-            neighborHotelRoomPrices <- lapply(splittedPriceElements, function(aElement){
-              ## Great Deal\n$80    Deal 5%\n$90
-              roomPrice <- unlist(strsplit(aElement,"\n"))
-              if(length(roomPrice) > 1){
-                return(roomPrice[[2]])
-              }
-              return (aElement)
-            })
-            
-            # Collecting user rating of neighbor hotels from the page.
-            notify("Scanning user rating of neighbor hotels ...", id = id)
-            checkActive()
-            ratingElement <- driver$Runtime$evaluate(
-              'var elements = document.querySelectorAll(".K1smNd > c-wiz[jsrenderer=\'hAbFdb\'] .KFi5wf");
+              )
+              
+              splittedPriceElements <- unlist(strsplit(priceElement$result$value, "@"))
+              
+              neighborHotelRoomPrices <- lapply(splittedPriceElements, function(aElement){
+                ## Great Deal\n$80    Deal 5%\n$90
+                roomPrice <- unlist(strsplit(aElement,"\n"))
+                if(length(roomPrice) > 1){
+                  return(roomPrice[[2]])
+                }
+                return (aElement)
+              })
+              
+              neighborHotelRoomPricesList <- c(neighborHotelRoomPricesList, neighborHotelRoomPrices)
+              
+              # Collecting user rating of neighbor hotels from the page.
+              notify("Scanning user rating of neighbor hotels ...", id = id)
+              checkActive()
+              ratingElement <- driver$Runtime$evaluate(
+                'var elements = document.querySelectorAll(".K1smNd > c-wiz[jsrenderer=\'hAbFdb\'] .KFi5wf");
                  var elementRatings = [];
                  elements.forEach(function(element) {
                    elementRatings.push(element.innerText);
                  });
                  elementRatings.join("\\n");'
-            )
-            
-            splittedRatingElements <- strsplit(ratingElement$result$value, "\n")
-            neighborHotelRatings <- lapply(splittedRatingElements, function(aElement){
-              return (aElement)
-            })
-            
-            # Collecting user review number of neighbor hotels from the page.
-            notify("Scanning user review numbers of neighbor hotels ...", id = id)
-            checkActive()
-            reviewElement <- driver$Runtime$evaluate(
-              'var elements = document.querySelectorAll(".K1smNd > c-wiz[jsrenderer=\'hAbFdb\'] .jdzyld");
+              )
+              
+              splittedRatingElements <- strsplit(ratingElement$result$value, "\n")
+              neighborHotelRatings <- lapply(splittedRatingElements, function(aElement){
+                return (aElement)
+              })
+              
+              neighborHotelRatingsList <- c(neighborHotelRatingsList, neighborHotelRatings)
+              
+              # Collecting user review number of neighbor hotels from the page.
+              notify("Scanning user review numbers of neighbor hotels ...", id = id)
+              checkActive()
+              reviewElement <- driver$Runtime$evaluate(
+                'var elements = document.querySelectorAll(".K1smNd > c-wiz[jsrenderer=\'hAbFdb\'] .jdzyld");
                  var elementReviews = [];
                  elements.forEach(function(element) {
                    elementReviews.push(element.innerText);
                  });
                  elementReviews.join("\\n");'
-            )
-            
-            splittedReviewElements <- strsplit(reviewElement$result$value, "\n")
-            
-            neighborHotelReviews <- lapply(splittedReviewElements, function(aElement){
-              return(gsub("[()]", "", (aElement)))
-            })
-            
-            # Collecting neighbor hotels name from the page.
-            notify("Scanning neighbor hotels name ...", id = id)
-            checkActive()
-            hotelNameElement <- driver$Runtime$evaluate(
-              'var elements = document.querySelectorAll(".K1smNd > c-wiz[jsrenderer=\'hAbFdb\'] div.QT7m7 h2[jsaction = \'YcW9n:dDUAne;\']");
+              )
+              
+              splittedReviewElements <- strsplit(reviewElement$result$value, "\n")
+              
+              neighborHotelReviews <- lapply(splittedReviewElements, function(aElement){
+                return(gsub("[()]", "", (aElement)))
+              })
+              
+              neighborHotelReviewsList <- c(neighborHotelReviewsList, neighborHotelReviews)
+              
+              # Collecting neighbor hotels name from the page.
+              notify("Scanning neighbor hotels name ...", id = id)
+              checkActive()
+              hotelNameElement <- driver$Runtime$evaluate(
+                'var elements = document.querySelectorAll(".K1smNd > c-wiz[jsrenderer=\'hAbFdb\'] div.QT7m7 h2[jsaction = \'YcW9n:dDUAne;\']");
                  var elementHotelNames = [];
                  elements.forEach(function(element) {
                    elementHotelNames.push(element.innerText);
                  });
                  elementHotelNames.join("\\n");'
-            )
+              )
+              
+              splittedHotelNameElements <- strsplit(hotelNameElement$result$value, "\n")
+              
+              neighborHotelNames <- lapply(splittedHotelNameElements, function(aElement){
+                return(aElement)
+              })
+              
+              neighborHotelNamesList <- c(neighborHotelNamesList, neighborHotelNames)
+              
+              if(i == numberOfPageToScan){
+                break
+              }
+
+              # Clicking on next button 
+              checkActive()
+              nextBtn1 <- driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[2]/div[2]/main/c-wiz/span/c-wiz/c-wiz[22]/div[1]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+              checkActive()
+              nextBtn2 <- driver$Runtime$evaluate('document.evaluate(\'//*[@id="id"]/c-wiz/c-wiz[22]/div[1]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+              checkActive()
+              nextBtn3 <- driver$Runtime$evaluate('document.querySelector("button[jsname=\'OCpkoe\']")')
+              
+              if(nextBtn1$result$subtype=="node"){
+                checkActive()
+                driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[2]/div[2]/main/c-wiz/span/c-wiz/c-wiz[22]/div[1]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
+              }else if(nextBtn2$result$subtype=="node"){
+                checkActive()
+                driver$Runtime$evaluate('document.evaluate(\'//*[@id="id"]/c-wiz/c-wiz[22]/div[1]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
+              }else if(nextBtn3$result$subtype=="node"){
+                checkActive()
+                driver$Runtime$evaluate('document.querySelector("button[jsname=\'OCpkoe\']").click()')
+              }else{
+                break
+              }
+              Sys.sleep(3.5)
+            }
             
-            splittedHotelNameElements <- strsplit(hotelNameElement$result$value, "\n")
-            
-            neighborHotelNames <- lapply(splittedHotelNameElements, function(aElement){
-              return(aElement)
-            })
-            
-            neighborHotelDetails[[room]][["Prices"]] <- unlist(neighborHotelRoomPrices)
-            neighborHotelDetails[[room]][["Ratings"]] <- unlist(neighborHotelRatings)
-            neighborHotelDetails[[room]][["Reviews"]] <- unlist(neighborHotelReviews)
-            neighborHotelDetails[[room]][["HotelName"]] <- unlist(neighborHotelNames)
+            neighborHotelDetails[[room]][["Prices"]] <- unlist(neighborHotelRoomPricesList)
+            neighborHotelDetails[[room]][["Ratings"]] <- unlist(neighborHotelRatingsList)
+            neighborHotelDetails[[room]][["Reviews"]] <- unlist(neighborHotelReviewsList)
+            neighborHotelDetails[[room]][["HotelName"]] <- unlist(neighborHotelNamesList)
             
             if(room == "Family"){
               notify("Ploting the optimized price for each types of room ...", id = id)
@@ -719,6 +768,8 @@ server <- function(input, output, session) {
             targetHotel <- gsub("\\bin\\s.*", "", input$hotelName, ignore.case = TRUE)
             currencySymbol = NULL
             currencySymbol <- str_remove_all(neighHotelDetailsForAllRoomType$Prices[1],"[0-9.,]")
+            print(neighHotelDetailsForAllRoomType)
+            # browser()
             makeNetworkGraph(neighHotelDetailsForAllRoomType, targetHotel, hotelRating, hotelReviews, checkInDate, currencySymbol, output)
           }else{
             output$notFound <- renderText("Not found any competitor hotel!")

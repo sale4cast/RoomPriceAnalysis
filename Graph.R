@@ -1,14 +1,24 @@
+# ggplot(df) + aes(x,y) + geom_col() + geom_text(aes(label = df$z), , position = position_stack(vjust = 0.5), angle = 90)
+# df <- data.frame(x = c(2.4, 3.5, 4.6), y = c(7, 10, 4), z = c("Amsterdam", "Prague", "Berlin"))
+# https://ggplot2.tidyverse.org/reference/geom_text.html
+# infoRoom <- targetPlusNighbHotelSplitOnRoomTypeG2[["Single"]] %>% select(HotelName, Ratings, Reviews, Prices) %>% mutate(Ratings = as.numeric(Ratings), Reviews = parse_number(Reviews), Prices = parse_number(Prices))
+# infoRoom <- infoRoom %>% distinct(Ratings, Reviews, .keep_all = TRUE) %>% mutate(rv = paste0("review-",Reviews))
+# ggplot(infoRoom, aes(Ratings, Prices, label = rv)) + geom_point() + geom_point(aes(x = targetHotelRatings, y = infoRoom$Prices[[1]]), colour = "red", size = 3) +  geom_text(alpha = 0.6)
+# tb <- tibble(Prices = 67, Ratings = 4.4, rv = "review-1900")
+# ggplot() + geom_point(data = infoRoom, aes(x = Ratings, y = Prices, label = rv)) + geom_point(data = tb, aes(x = Ratings, y = Prices), colour = "red", size = 3) +  geom_text(size = 3)
+
 makeNetworkGraph <- function(prices_df, targetHotel, targetHotelRatings, targetHotelReviews, checkInDate, currencySymbol, output) {
   roomType <- c("Single", "Double", "Triple", "Family")
   hotelInfo <- prices_df
-  
   splitTargetHotel <- unlist(strsplit(targetHotel, " "))
   targetHotelPattern <- paste0(paste(splitTargetHotel, collapse = ""),"|",targetHotel)
   
   # Filter hotels based on rating criteria
   filteredNighHotel <- function(nighbHotelOnRoomType, ratingRangeFactor, ratingRangeFactorPlus){
-    if(targetHotelReviews > 100)
+    if(targetHotelReviews > 500)
       var <- nighbHotelOnRoomType %>% filter(Ratings >= targetHotelRatings - (ratingRangeFactor + ratingRangeFactorPlus), Ratings <= targetHotelRatings + (ratingRangeFactor + ratingRangeFactorPlus))
+    else if(targetHotelReviews > 200 && targetHotelReviews < 500)
+      var <- nighbHotelOnRoomType %>% filter(Ratings >= targetHotelRatings - (ratingRangeFactor + ratingRangeFactorPlus), Ratings <= targetHotelRatings + (ratingRangeFactor + ratingRangeFactorPlus / 2))
     else
       var <- nighbHotelOnRoomType %>% filter(Ratings >= targetHotelRatings - (ratingRangeFactor + ratingRangeFactorPlus))
     return(var)  
@@ -18,6 +28,7 @@ makeNetworkGraph <- function(prices_df, targetHotel, targetHotelRatings, targetH
   ratingRangeFactor = 0.3
   ratingRangeFactorPlus = 0.2
   # Filter out all hotels(HotelName, Ratings, Prices, Reviews, RoomType) except targetHotel
+  # browser()
   neighborHotelInfo <- hotelInfo %>% filter(!grepl(targetHotelPattern, HotelName, ignore.case = TRUE)) %>% select(c(HotelName, Ratings, Prices, Reviews, RoomType))
   neighborHotelInfo$RoomType <- factor(neighborHotelInfo$RoomType, levels = unique(neighborHotelInfo$RoomType)) # why do we need factor!
   splitNeighborHotelOnRoomType <- split(neighborHotelInfo, neighborHotelInfo$RoomType)
@@ -41,15 +52,21 @@ makeNetworkGraph <- function(prices_df, targetHotel, targetHotelRatings, targetH
     var <- hotel %>% mutate(RatingPriceColumn = Ratings * parse_number(Prices)) %>% summarise(optimizePrice = sum(RatingPriceColumn) / sum(Ratings)) %>% pull(optimizePrice)
     return(round(var))
   })
-  # browser()
+  if(pricesOfTargetHotel[[1]] > pricesOfTargetHotel[[2]]) 
+    pricesOfTargetHotel[[2]] <- pricesOfTargetHotel[[1]] + 2
   # Add target hotel optimize price to splitNighHotelOnRoomType list
   targetPlusNighbHotelSplitOnRoomType <- lapply(splitNeighborHotelOnRoomType, function(hotel){
     hotel <- rbind(tibble(HotelName = paste0(currencySymbol, pricesOfTargetHotel[[unique(hotel$RoomType)]]), Ratings  = "" , Prices = "", Reviews = "", RoomType = unique(hotel$RoomType)), hotel)
-    # take upto 10 hotel
     hotel <- hotel %>% head(10) 
-    
     return(hotel)
   })
+  
+  targetPlusNighbHotelSplitOnRoomTypeG2 <- lapply(splitNeighborHotelOnRoomType, function(hotel){
+    hotel <- rbind(tibble(HotelName = targetHotel, Ratings  = targetHotelRatings, Prices = paste0(currencySymbol, pricesOfTargetHotel[[unique(hotel$RoomType)]]), Reviews = targetHotelReviews, RoomType = unique(hotel$RoomType)), hotel)
+    return(hotel)
+  })
+  
+  # browser()
   # generate plot
   generatePlot <- function(targetHotel, allHotelForOneRoomType) {
     # select index of target hotel
@@ -118,28 +135,51 @@ makeNetworkGraph <- function(prices_df, targetHotel, targetHotelRatings, targetH
         legend.position = "none",
       )
   }  
-
+  
   # output rendering
-    output$graph <- renderUI({
-      lapply(1:length(targetPlusNighbHotelSplitOnRoomType), function(roomType){
-        if(NROW(targetPlusNighbHotelSplitOnRoomType[[roomType]]) > 1){
-          fluidRow(
-            style = "display: flex; justify-content: center; align-items: center;",
-            column(
-              width = 12, align = "center",
-              
-              h3(paste0(names(targetPlusNighbHotelSplitOnRoomType)[roomType], " Room"," Prices (Date - ", checkInDate, ")"), align = "center", style = "margin-bottom: 40px; margin-top: 50px"),
-              h4("Ratings: ", strong(targetHotelRatings, style="color: orange;"),", Reviews: ", strong(targetHotelReviews, style="color: orange;")),
-              
-              plotOutput(paste0("plot-",roomType), width = "700px", height = "680px")
+  output$graphAndTable <- renderUI({
+    lapply(1:length(targetPlusNighbHotelSplitOnRoomType), function(roomType){
+      if(NROW(targetPlusNighbHotelSplitOnRoomType[[roomType]]) > 1){
+        # browser()
+        fluidRow(
+          style = "display: flex; justify-content: center; align-items: center;",
+          column(
+            width = 12, align = "center",
+            
+            h3(paste0(names(targetPlusNighbHotelSplitOnRoomType)[roomType], " Room"," Prices (Date - ", checkInDate, ")"), align = "center", style = "margin-bottom: 40px; margin-top: 50px"),
+            #h4("Ratings: ", strong(targetHotelRatings, style="color: orange;"),", Reviews: ", strong(targetHotelReviews, style="color: orange;")),
+            tagList(
+              tags$h5(tags$b("Red dot is ", targetHotel, " with ratings = ", targetHotelRatings, " reviews = ", targetHotelReviews)),                
+              plotOutput(paste0("plot-",roomType)),
+              tags$h5(tags$b("Optimized price for ", names(targetPlusNighbHotelSplitOnRoomType)[roomType], " room ", tags$span(style="color:red"))),                
+              plotOutput(paste0("graph-",roomType), width = "700px", height = "680px"),
+              tags$br(),
+              tags$br(),
+              renderDataTable(targetPlusNighbHotelSplitOnRoomTypeG2[[roomType]] %>% select(HotelName, Ratings, Reviews, Prices) %>% arrange(Ratings))
             )
           )
-        }
-      })
+        )
+      }
     })
+  })
   
   lapply(1:length(targetPlusNighbHotelSplitOnRoomType), function(roomType){
-    if(NROW(targetPlusNighbHotelSplitOnRoomType[[roomType]]) > 1)
-      output[[paste0("plot-",roomType)]] <- renderPlot(generatePlot(targetHotel, targetPlusNighbHotelSplitOnRoomType[[roomType]]))
+    if(NROW(targetPlusNighbHotelSplitOnRoomType[[roomType]]) > 1) {
+      infoRoom <- targetPlusNighbHotelSplitOnRoomTypeG2[[roomType]] %>% select(Ratings, Reviews, Prices) %>% mutate(Reviews = parse_number(Reviews)) %>% distinct(Ratings, Reviews, .keep_all = TRUE)
+      firstPlot <- ggplot(infoRoom, aes(x = Ratings, y = Reviews, label = Prices)) + 
+        geom_point(alpha = 0.9, colour = "darkorange") + 
+        geom_text(vjust = -0.4) + 
+        geom_point(aes(x = targetHotelRatings, y = targetHotelReviews), colour = "red", size = 3, alpha = 0.5) +
+        theme(
+          axis.title.x = element_text(size = rel(1), face = "bold"),
+          axis.title.y = element_text(size = rel(1), face = "bold"),
+          axis.text.x =  element_text(size = rel(1), face = "bold"),
+          axis.text.y =  element_text(size = rel(1), face = "bold")
+        )
+      # browser()
+      output[[paste0("plot-",roomType)]] <- renderPlot(firstPlot)
+      output[[paste0("graph-",roomType)]] <- renderPlot(generatePlot(targetHotel, targetPlusNighbHotelSplitOnRoomType[[roomType]]))  
+      #output[[paste0("data-",roomType)]] <- renderDataTable(targetPlusNighbHotelSplitOnRoomTypeG2[[roomType]] %>% select(HotelName, Ratings, Reviews, Prices))
+    }
   })
 }
