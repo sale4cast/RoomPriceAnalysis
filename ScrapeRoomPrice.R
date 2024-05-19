@@ -298,7 +298,7 @@ server <- function(input, output, session) {
       if(!is.null(hotelStarType)){
         searchTextForNeighborHotel <- paste0(hotelStarType, " star hotel in ", city)
         checkActive()
-        #browser()
+        browser()
         driver$Runtime$evaluate(paste0('document.querySelector("textarea").value = "', searchTextForNeighborHotel,'"'))
         checkActive()
         #browser()
