@@ -112,54 +112,69 @@ server <- function(input, output, session) {
       notify("Navigating a browser http://.... on the device", id = id)
       Sys.sleep(3)
       checkActive()
-      driver$Runtime$evaluate(paste0('document.querySelector("textarea").value = "', googleSearchText,'"'))
-      write(paste0("SearchField -> ", driver$Runtime$evaluate(paste0('document.querySelector("textarea").value = "', googleSearchText,'"'))$resul$value, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+      textarea <- driver$Runtime$evaluate(paste0('document.querySelector("textarea").value = "', googleSearchText,'"'))
+      write(paste0("SearchField -> ", textarea$resul$value, "\n"), debugFileUrl, sep = "\n", append = TRUE)
       # browser()
       # ! ?? is there any chance to add here XPath as a button !
       queryGoogleSearchByAria <- queryGoogleSearchByClass <- NULL
+      
+      areaLabelQuery <- 'document.querySelector("input[aria-label=\'Google Search\']")'
+      classNameQuery <- 'document.querySelector(".gNO89b")'
+      
       checkActive()
-      queryGoogleSearchByAria <- driver$Runtime$evaluate('document.querySelector("input[aria-label=\'Google Search\']")')  
+      queryGoogleSearchByAria <- driver$Runtime$evaluate(areaLabelQuery)  
+      checkActive()
+      queryGoogleSearchByClass <- driver$Runtime$evaluate(classNameQuery)
+
       write(paste0("queryGoogleSearchByAria -> ", queryGoogleSearchByAria$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-      checkActive()
-      queryGoogleSearchByClass <- driver$Runtime$evaluate('document.querySelector(".gNO89b")')
       write(paste0("queryGoogleSearchByClass -> ", queryGoogleSearchByClass$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+      
       if(queryGoogleSearchByAria$result$subtype == "node"){
         checkActive()
-        driver$Runtime$evaluate('document.querySelector("input[aria-label=\'Google Search\']").click()')
+        driver$Runtime$evaluate(paste0(areaLabelQuery,".click()"))
       }
       else if((queryGoogleSearchByClass$result$subtype) == "node"){
         checkActive()
-        driver$Runtime$evaluate('document.querySelector(".gNO89b").click()')
+        driver$Runtime$evaluate(classNameQuery, ".click()")
       }      
       
       notify("Looking for hotel star * type ... ", id = id)
       Sys.sleep(3)
       # extract 3rd div of body of google page.
       # di vSecFromGooglePage has character(0) value sometimes !!!!!!!!!!!
-      divSecFromGooglePage <- NULL
       # browser()
-      checkActive()
-      divSecFromGooglePage <- driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[3]/div/div/div/div[1]/div/div/div[1]/a\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value
       
-      write(paste0("divSecFromGooglePageByFullXpath -> ", driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[3]/div/div/div/div[1]/div/div/div[1]/a\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-      write(paste0("divSecFromGooglePageByPartialXpath -> ", driver$Runtime$evaluate('document.evaluate(\'//*[@id="Odp5De"]/div/div/div/div/div[3]/div/div/div[1]/div/div/div[1]/a\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-      write(paste0("divSecFromGooglePageByAriaLabel -> ", driver$Runtime$evaluate('document.querySelector("a[aria-labelledby=\'0_lbl\']")')$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-      write(paste0("divSecFromGooglePageByClass -> ", driver$Runtime$evaluate('document.querySelector("div.fQtNvd")')$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+      fullXPathQuery <- 'document.evaluate(\'/html/body/div[5]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[3]/div/div/div/div[1]/div/div/div[1]/a\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
+      halfXPathQuery <- 'document.evaluate(\'//*[@id="Odp5De"]/div/div/div/div/div[3]/div/div/div[1]/div/div/div[1]/a\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
+      areaLabelQuery <- 'document.querySelector("a[aria-labelledby=\'0_lbl\']").innerText'
+      classNameQuery <- 'document.querySelector("div.fQtNvd").innerText'
+      
+      checkActive()
+      divSecFromGooglePageByFullXPath <- driver$Runtime$evaluate(fullXPathQuery)$result$value
+      divSecFromGooglePageByHalfXPath <- driver$Runtime$evaluate(halfXPathQuery)$result$value
+      divSecFromGooglePageByAreaLabel <- driver$Runtime$evaluate(areaLabelQuery)$result$value
+      divSecFromGooglePageByClass <- driver$Runtime$evaluate(classNameQuery)$result$value
+      
+      write(paste0("divSecFromGooglePageByFullXpath -> ", gsub("\n"," ", divSecFromGooglePageByFullXPath), "\n"), debugFileUrl, sep = "\n", append = TRUE)
+      write(paste0("divSecFromGooglePageByPartialXpath -> ", gsub("\n", " ", divSecFromGooglePageByHalfXPath), "\n"), debugFileUrl, sep = "\n", append = TRUE)
+      write(paste0("divSecFromGooglePageByAriaLabel -> ", gsub("\n", " ",divSecFromGooglePageByAreaLabel), "\n"), debugFileUrl, sep = "\n", append = TRUE)
+      write(paste0("divSecFromGooglePageByClass -> ", gsub("\n", " ", divSecFromGooglePageByClass), "\n"), debugFileUrl, sep = "\n", append = TRUE)
+      
       # divSecFromGooglePage <- divSecFromGooglePage %>% as.character() %>% tolower()
+      
+      divSecFromGooglePage <- divSecFromGooglePageByFullXPath
+      
       if(is.null(divSecFromGooglePage)){
         checkActive()
-        # divSecFromGooglePage <- tolower(as.character(driver$Runtime$evaluate('document.evaluate(\'//*[@id="Odp5De"]/div/div/div/div/div[3]/div/div/div[1]/div/div/div[1]/a\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value))
-        divSecFromGooglePage <- driver$Runtime$evaluate('document.evaluate(\'//*[@id="Odp5De"]/div/div/div/div/div[3]/div/div/div[1]/div/div/div[1]/a\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value
+        divSecFromGooglePage <- divSecFromGooglePageByHalfXPath
       }      
       if(is.null(divSecFromGooglePage)){
         checkActive()
-        # divSecFromGooglePage <- tolower(as.character(driver$Runtime$evaluate('document.querySelector("a[aria-labelledby=\'0_lbl\']").innerText')$result$value))
-        divSecFromGooglePage <- driver$Runtime$evaluate('document.querySelector("a[aria-labelledby=\'0_lbl\']").innerText')$result$value
+        divSecFromGooglePage <- divSecFromGooglePageByAreaLabel
       }
       if(is.null(divSecFromGooglePage)){
         checkActive()
-        # divSecFromGooglePage <- tolower(as.character(driver$Runtime$evaluate('document.querySelector("div.fQtNvd").innerText')$result$value))
-        divSecFromGooglePage <- driver$Runtime$evaluate('document.querySelector("div.fQtNvd").innerText')$result$value
+        divSecFromGooglePage <- divSecFromGooglePageByClass
       }
       # Extract the whole HTML page text and convert it to lowercase
       # ! ?? is the use of body tag stable to return page whole page text. Can we add XPath next to it !
@@ -168,52 +183,77 @@ server <- function(input, output, session) {
       occurrenceFound <-  str_count(googlePageText, hotelNamePattern) ### May need to check properly. Because the occurance for the pullman hotel in riga old town is only 4 ###
       checkActive()
       Sys.sleep(3)
+      # browser()
       hotelStarString <- c("2-star","3-star","4-star","5-star", "2 star","3 star","4 star","5 star")
       if(occurrenceFound >= 1){
         # Get splitHotelName by removing the city name Ex: splitHotelName = c("the", "pullman", "hotel", "Riga")
         # Output: splitHotelName = c("the", "pullman", "hotel")            
         splitHotelName <- splitHotelName[splitHotelName != city] ## Need to understand why we are removing city name!
         # Scanning top right corner of google page to look if there is any star type over there.
+        
+        checkHotelStarType <- NULL
+        
+        fullXPathQuery <- 'document.evaluate(\'/html/body/div[5]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[3]\', document,null,XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
+        halfXPathQuery <- 'document.evaluate(\'//*[@id="rhs"]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[3]\', document,null,XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
+        classNameQuery1 <- 'document.querySelector("span.E5BaQ").innerText'
+        classNameQuery2 <- 'document.querySelector("span.YhemCb").innerText'
+        
         checkActive()
-        checkHotelStarType <- driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[3]\', document,null,XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')
+        checkHotelStarTypeByFullXpath <- driver$Runtime$evaluate(fullXPathQuery)$result$value
+        checkHotelStarTypeByHalfXpath <- driver$Runtime$evaluate(halfXPathQuery)$result$value
+        checkHotelStarTypeByClassName1 <- driver$Runtime$evaluate(classNameQuery1)$result$value
+        checkHotelStarTypeByClassName2 <- driver$Runtime$evaluate(classNameQuery2)$result$value
         
-        write(paste0("checkHotelStarTypeByFullXpath -> ", driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[3]\', document,null,XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-        write(paste0("checkHotelStarTypeByPartialXpath -> ", driver$Runtime$evaluate('document.evaluate(\'//*[@id="rhs"]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[3]\', document,null,XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-        write(paste0("checkHotelStarTypeByClassName1 -> ", driver$Runtime$evaluate('document.querySelector("span.E5BaQ")')  $result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-        write(paste0("checkHotelStarTypeByClassName2 -> ", driver$Runtime$evaluate('document.querySelector("span.YhemCb")')$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+        write(paste0("checkHotelStarTypeByFullXpath -> ", checkHotelStarTypeByFullXpath, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+        write(paste0("checkHotelStarTypeByPartialXpath -> ", checkHotelStarTypeByHalfXpath, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+        write(paste0("checkHotelStarTypeByClassName1 -> ", checkHotelStarTypeByClassName1, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+        write(paste0("checkHotelStarTypeByClassName2 -> ", checkHotelStarTypeByClassName2, "\n"), debugFileUrl, sep = "\n", append = TRUE)
         
-        if(is.null(checkHotelStarType$result$value)){
+        checkHotelStarType <- checkHotelStarTypeByFullXpath
+        
+        if(is.null(checkHotelStarType)){
           checkActive()
-          checkHotelStarType <- driver$Runtime$evaluate('document.evaluate(\'//*[@id="rhs"]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[3]\', document,null,XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')
+          checkHotelStarType <- checkHotelStarTypeByHalfXpath
         }
-        if(is.null(checkHotelStarType$result$value)){
+        if(is.null(checkHotelStarType)){
           checkActive()
-          checkHotelStarType <- driver$Runtime$evaluate('document.querySelector("span.E5BaQ").innerText')  
+          checkHotelStarType <- checkHotelStarTypeByClassName1
         }
-        if(is.null(checkHotelStarType$result$value)){
+        if(is.null(checkHotelStarType)){
           checkActive()
-          checkHotelStarType <- driver$Runtime$evaluate('document.querySelector("span.YhemCb").innerText') # For some hotel, 'span.E5BaQ' is replaced by 'span.YhemCb' 
+          checkHotelStarType <- checkHotelStarTypeByClassName2 # For some hotel, 'span.E5BaQ' is replaced by 'span.YhemCb' 
         }
-        # browser()
+
         # Extracting hoter STAR '*' type and review number from top right corner of google page but not hotel rating.
-        if(!is.null(checkHotelStarType) && !is.null(checkHotelStarType$result$value) && !is.na(parse_number(checkHotelStarType$result$value)) && grepl(paste(hotelStarString, collapse = "|"), checkHotelStarType$result$value))
+        if(!is.null(checkHotelStarType) && !is.na(parse_number(checkHotelStarType)) && grepl(paste(hotelStarString, collapse = "|"), checkHotelStarType))
         {
-          hotelStarType <- parse_number(checkHotelStarType$result$value)
+          hotelStarType <- parse_number(checkHotelStarType)
+          
           checkActive()
           # For Hotel Rating
-          hotelRating <- driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[1]\', document,null,XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value
+          hotelRating <- NULL
           
-          write(paste0("hotelRatingByFullXpath -> ", driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[1]\', document,null,XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-          write(paste0("hotelRatingByPartialXpath -> ", driver$Runtime$evaluate('document.evaluate(\'//*[@id="rhs"]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[1]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-          write(paste0("hotelRatingByClassName -> ", driver$Runtime$evaluate('document.querySelector("span.Aq14fc")')$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          fullXPathQuery <- 'document.evaluate(\'/html/body/div[5]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[1]\', document,null,XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
+          halfXPathQuery <- 'document.evaluate(\'//*[@id="rhs"]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[1]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
+          classNameQuery <- 'document.querySelector("span.Aq14fc").innerText'
+          
+          hotelRatingByFullXPath <- driver$Runtime$evaluate(fullXPathQuery)$result$value
+          hotelRatingByHalfXpath <- driver$Runtime$evaluate(halfXPathQuery)$result$value
+          hotelRatingByClassName <- driver$Runtime$evaluate(classNameQuery)$result$value
+          
+          write(paste0("hotelRatingByFullXpath -> ", hotelRatingByFullXPath, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("hotelRatingByPartialXpath -> ", hotelRatingByHalfXpath, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("hotelRatingByClassName -> ",hotelRatingByClassName, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          
+          hotelRating <- hotelRatingByFullXPath
           
           if(is.null(hotelRating)){
             checkActive()
-            hotelRating <- driver$Runtime$evaluate('document.evaluate(\'//*[@id="rhs"]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[1]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value
+            hotelRating <- hotelRatingByHalfXpath
           }          
           if(is.null(hotelRating)){
             checkActive()
-            hotelRating <- driver$Runtime$evaluate('document.querySelector("span.Aq14fc").innerText')$result$value
+            hotelRating <- hotelRatingByClassName
           }
           hotelRating <- parse_number(hotelRating)
           
@@ -221,21 +261,30 @@ server <- function(input, output, session) {
           checkActive()
           #browser()
           # !! TO DO 2 checked DONE 
-          hotelReviews <- driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/a\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value
+          hotelReviews <- NULL
           
-          write(paste0("hotelReviewsByFullXpath -> ", driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/a\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-          write(paste0("hotelReviewsByPartialXpath -> ", driver$Runtime$evaluate('document.evaluate(\'//*[@id="rhs"]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/a\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-          write(paste0("hotelReviewsByClassName -> ", driver$Runtime$evaluate('document.querySelector("a.hqzQac")')$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          fullXPathQuery <- 'document.evaluate(\'/html/body/div[5]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/a\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
+          halfXPathQuery <- 'document.evaluate(\'//*[@id="rhs"]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/a\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
+          classNameQuery <- 'document.querySelector("a.hqzQac").innerText'
+          
+          hotelReviewsByFullXPath <- driver$Runtime$evaluate(fullXPathQuery)$result$value
+          hotelReviewsByHalfXPath <- driver$Runtime$evaluate(halfXPathQuery)$result$value
+          hotelReviewsByClassName <- driver$Runtime$evaluate(classNameQuery)$result$value
+          
+          write(paste0("hotelReviewsByFullXpath -> ", hotelReviewsByFullXPath, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("hotelReviewsByPartialXpath -> ", hotelReviewsByHalfXPath, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("hotelReviewsByClassName -> ", hotelReviewsByClassName, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          
+          hotelReviews <- hotelReviewsByFullXPath
           
           if(is.null(hotelReviews)){
             checkActive()
-            driver$Runtime$evaluate('document.evaluate(\'//*[@id="rhs"]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/a\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value
-            
+            hotelReviews <- hotelReviewsByHalfXPath
           }
           
           if(is.null(hotelReviews)){
             checkActive()
-            hotelReviews <- driver$Runtime$evaluate('document.querySelector("a.hqzQac").innerText')$result$value
+            hotelReviews <- hotelReviewsByClassName
           }
           hotelReviews <- parse_number(hotelReviews)
         }
@@ -243,45 +292,66 @@ server <- function(input, output, session) {
         else if(!is.null(divSecFromGooglePage) && length(divSecFromGooglePage) > 0)
         {
           #browser() 
-          hotelStarType <- findHotelStarType(splitHotelName, divSecFromGooglePage, TRUE)     
+          hotelStarType <- findHotelStarType(splitHotelName, divSecFromGooglePage, TRUE)    
+          
+          hotelRating <- NULL
+          
+          fullXPathQuery <- 'document.evaluate(\'/html/body/div[5]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[3]/div/div/div/div[1]/div/div/div[1]/a/div/div/div[2]/div/span[1]/span[1]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
+          halfXPathQuery <- 'document.evaluate(\'//*[@id="0_lbl"]/div[2]/div/span[1]/span[1]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
+          classNameQuery <- 'document.querySelector("span.yi40Hd").innerText'
+          
           checkActive()
+          hotelRatingByFullXPath <- driver$Runtime$evaluate(fullXPathQuery)$result$value
+          hotelRatingByHalfXpath <- driver$Runtime$evaluate(halfXPathQuery)$result$value
+          hotelRatingByClassName <- driver$Runtime$evaluate(classNameQuery)$result$value
+          
+          write(paste0("hotelRatingFromDivSectionByFullXpath -> ", hotelRatingByFullXPath, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("hotelRatingFromDivSectionByPartialXpath -> ", hotelRatingByHalfXpath, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("hotelRatingFromDivSectionByClassName -> ",hotelRatingByClassName, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          
           # browser()
           # !! TO DO 4 done 
-          hotelRating <- driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[3]/div/div/div/div[1]/div/div/div[1]/a/div/div/div[2]/div/span[1]/span[1]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value
           
-          write(paste0("hotelRatingFromDivSectionByFullXpath -> ", driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[3]/div/div/div/div[1]/div/div/div[1]/a/div/div/div[2]/div/span[1]/span[1]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-          write(paste0("hotelRatingFromDivSectionByPartialXpath -> ", driver$Runtime$evaluate('document.evaluate(\'//*[@id="0_lbl"]/div[2]/div/span[1]/span[1]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-          write(paste0("hotelRatingFromDivSectionByClassName -> ", driver$Runtime$evaluate('document.querySelector("span.yi40Hd")')$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          hotelRating <- hotelRatingByFullXPath
           
-          if(is.null(hotelRating)){
-            #browser()
-            # TO DO 5 done 
-            hotelRating <- driver$Runtime$evaluate('document.evaluate(\'//*[@id="0_lbl"]/div[2]/div/span[1]/span[1]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value
-          }
           if(is.null(hotelRating)){
             checkActive()
-            hotelRating <- driver$Runtime$evaluate('document.querySelector("span.yi40Hd").innerText')$result$value
+            hotelRating <- hotelRatingByHalfXpath
+          }          
+          if(is.null(hotelRating)){
+            checkActive()
+            hotelRating <- hotelRatingByClassName
           }
           hotelRating <- parse_number(hotelRating)
           #browser()
+          
           checkActive()
-          # done browser
-          hotelReviews <- driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[3]/div/div/div/div[1]/div/div/div[1]/a/div/div/div[2]/div/span[1]/span[3]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value
+
+          hotelReviews <- NULL
           
-          write(paste0("hotelReviewsFromDivSectionByFullXpath -> ", driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[3]/div/div/div/div[1]/div/div/div[1]/a/div/div/div[2]/div/span[1]/span[3]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-          write(paste0("hotelReviewsFromDivSectionByPartialXpath -> ", driver$Runtime$evaluate('document.evaluate(\'//*[@id="0_lbl"]/div[2]/div/span[1]/span[3]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-          write(paste0("hotelReviewsFromDivSectionByClassName -> ", driver$Runtime$evaluate('document.querySelector("span.RDApEe")')$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          fullXPathQuery <- 'document.evaluate(\'/html/body/div[5]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[3]/div/div/div/div[1]/div/div/div[1]/a/div/div/div[2]/div/span[1]/span[3]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
+          halfXPathQuery <- 'document.evaluate(\'//*[@id="0_lbl"]/div[2]/div/span[1]/span[3]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
+          classNameQuery <- 'document.querySelector("a.hqzQac")'
+          
+          hotelReviewsByFullXPath <- driver$Runtime$evaluate(fullXPathQuery)$result$value
+          hotelReviewsByHalfXPath <- driver$Runtime$evaluate(halfXPathQuery)$result$value
+          hotelReviewsByClassName <- driver$Runtime$evaluate(classNameQuery)$result$value
+          
+          write(paste0("hotelReviewsFromDivSectionByFullXpath -> ", hotelReviewsByFullXPath, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("hotelReviewsFromDivSectionByPartialXpath -> ", hotelReviewsByClassName, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("hotelReviewsFromDivSectionByClassName -> ", hotelReviewsByClassName, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          
+          hotelReviews <- hotelReviewsByFullXPath
           
           if(is.null(hotelReviews)){
             checkActive()
-            hotelReviews <- driver$Runtime$evaluate('document.evaluate(\'//*[@id="0_lbl"]/div[2]/div/span[1]/span[3]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value
+            hotelReviews <- hotelReviewsByHalfXPath
           }
           
           if(is.null(hotelReviews)){
             checkActive()
-            hotelReviews <- driver$Runtime$evaluate('document.querySelector("span.RDApEe").innerText')$result$value
+            hotelReviews <- hotelReviewsByClassName
           }
-          
           
           if(grepl("k", hotelReviews, ignore.case = TRUE))
             hotelReviews <- parse_number(hotelReviews) * 1000
@@ -295,48 +365,64 @@ server <- function(input, output, session) {
         else if(is.null(hotelRating) && is.null(hotelReviews) && !is.null(checkHotelStarType$result$value) && !is.na(parse_number(checkHotelStarType$result$value)) && !grepl(paste(hotelStarString, collapse = "|"), checkHotelStarType$result$value))
         {
           hotelStarType <- findHotelStarType(splitHotelName, googlePageText, FALSE) 
-          # For Hotel Rating
-          checkActive()
-          hotelRating <- driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[1]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value
           
-          write(paste0("hotelRatingByFullXpath -> ", driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[1]\', document,null,XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-          write(paste0("hotelRatingByPartialXpath -> ", driver$Runtime$evaluate('document.evaluate(\'//*[@id="rhs"]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[1]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-          write(paste0("hotelRatingByClassName -> ", driver$Runtime$evaluate('document.querySelector("span.Aq14fc")')$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          fullXPathQuery <- 'document.evaluate(\'/html/body/div[5]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[1]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
+          halfXPathQuery <- 'document.evaluate(\'//*[@id="rhs"]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[1]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null.singleNodeValue.innerText'
+          classNameQuery <- 'document.querySelector("span.Aq14fc").innerText'
+          
+          hotelRatingByFullXPath <- driver$Runtime$evaluate(fullXPathQuery)$result$value
+          hotelRatingByHalfXpath <- driver$Runtime$evaluate(halfXPathQuery)$result$value
+          hotelRatingByClassName <- driver$Runtime$evaluate(classNameQuery)$result$value
+          
+          write(paste0("hotelRatingByFullXpath -> ", hotelRatingByFullXPath, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("hotelRatingByPartialXpath -> ", hotelRatingByHalfXpath, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("hotelRatingByClassName -> ",hotelRatingByClassName, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          
+          hotelRating <- hotelRatingByFullXPath
           
           if(is.null(hotelRating)){
             checkActive()
-            hotelRating <- driver$Runtime$evaluate('document.evaluate(\'//*[@id="rhs"]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[1]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value
-            
-          }
+            hotelRating <- hotelRatingByHalfXpath
+          }          
           if(is.null(hotelRating)){
             checkActive()
-            hotelRating <- driver$Runtime$evaluate('document.querySelector("span.Aq14fc").innerText')$result$value
+            hotelRating <- hotelRatingByClassName
           }
           hotelRating <- parse_number(hotelRating)
-          
+
           # For Hotel Reviews
           checkActive()
           #browser()
-          hotelReviews <- driver$Runtime$evaluate('document.evaluate(\'//*[@id="rhs"]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[3]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value
+          # !! TO DO 2 checked DONE 
+          hotelReviews <- NULL
           
-          write(paste0("hotelReviewsByFullXpath -> ", driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/a\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-          write(paste0("hotelReviewsByPartialXpath -> ", ddriver$Runtime$evaluate('document.evaluate(\'//*[@id="rhs"]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/a\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-          write(paste0("hotelReviewsByClassName -> ", driver$Runtime$evaluate('document.querySelector("a.hqzQac")')$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          fullXPathQuery <- 'document.evaluate(\'/html/body/div[5]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/a\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
+          halfXPathQuery <- 'document.evaluate(\'//*[@id="rhs"]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[3]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
+          classNameQuery1 <- 'document.querySelector("a.hqzQac").innerText'
+          classNameQuery2 <- 'document.querySelector("a[data-async-trigger=\'reviewDialog\']").innerText'
+          
+          hotelReviewsByFullXPath <- driver$Runtime$evaluate(fullXPathQuery)$result$value
+          hotelReviewsByHalfXPath <- driver$Runtime$evaluate(halfXPathQuery)$result$value
+          hotelReviewsByClassName1 <- driver$Runtime$evaluate(classNameQuery1)$result$value
+          hotelReviewsByClassName2 <- driver$Runtime$evaluate(classNameQuery2)$result$value
+          
+          write(paste0("hotelReviewsByFullXpath -> ", hotelReviewsByFullXPath, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("hotelReviewsByPartialXpath -> ", hotelReviewsByHalfXPath, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("hotelReviewsByClassName1 -> ", hotelReviewsByClassName1, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("hotelReviewsByClassName2 -> ", hotelReviewsByClassName2, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          
+          hotelReviews <- hotelReviewsByFullXPath
           
           if(is.null(hotelReviews)){
             checkActive()
-            hotelReviews <- driver$Runtime$evaluate('document.querySelector("a[data-async-trigger=\'reviewDialog\']").innerText')$result$value
+            hotelReviews <- hotelReviewsByHalfXPath
           }
+          
           if(is.null(hotelReviews)){
             checkActive()
-            driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/a\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText')$result$value
+            hotelReviews <- hotelReviewsByClassName
           }
-          if(is.null(hotelReviews)){
-            checkActive()
-            #browser()
-            hotelReviews <- driver$Runtime$evaluate('document.querySelector("a.hqzQac").innerText')$result$value
-          }
-          hotelReviews <- parse_number(hotelReviews)          
+          hotelReviews <- parse_number(hotelReviews)
         }
       }   
       
@@ -344,114 +430,123 @@ server <- function(input, output, session) {
         searchTextForNeighborHotel <- paste0(hotelStarType, " star hotel in ", city)
         checkActive()
         # browser()
-        driver$Runtime$evaluate(paste0('document.querySelector("textarea").value = "', searchTextForNeighborHotel,'"'))
-        write(paste0("SearchTextForNeighborHotel -> ", driver$Runtime$evaluate(paste0('document.querySelector("textarea").value = "', searchTextForNeighborHotel,'"'))$result$value, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+        searchTextForNeighborHotelForTextarea <- driver$Runtime$evaluate(paste0('document.querySelector("textarea").value = "', searchTextForNeighborHotel,'"'))
+
+        write(paste0("SearchTextForNeighborHotel -> ", searchTextForNeighborHotelForTextarea$result$value, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+
+        fullXPathQuery <- 'document.evaluate(\'/html/body/div[3]/div[2]/form/div[1]/div[1]/div[2]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
+        halfXPathQuery <- 'document.evaluate(\'//*[@id="tsf"]/div[1]/div[1]/div[2]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
+        classNameQuery <- 'document.querySelector("button.Tg7LZd")'
+        areaLabelQuery <- 'document.querySelector("button[aria-label=\'Search\']")'
         
         checkActive()
         #browser()
-        searchButton1 <- driver$Runtime$evaluate('document.evaluate(\'/html/body/div[3]/div[2]/form/div[1]/div[1]/div[2]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
-        checkActive
-        searchButton2 <- driver$Runtime$evaluate('document.evaluate(\'//*[@id="tsf"]/div[1]/div[1]/div[2]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+        googleSearchButtonByFullXPath <- driver$Runtime$evaluate(fullXPathQuery)
+        checkActive()
+        googleSearchButtonByHalfXPath <- driver$Runtime$evaluate(halfXPathQuery)
         
         checkActive()
-        searchButton3 <- driver$Runtime$evaluate('document.querySelector("button.Tg7LZd")')
+        googleSearchButtonByClassName <- driver$Runtime$evaluate(classNameQuery)
         checkActive()
-        searchButton4 <- driver$Runtime$evaluate('document.querySelector("button[aria-label=\'Search\']")')
+        googleSearchButtonByAreaLabel <- driver$Runtime$evaluate(areaLabelQuery)
         
-        write(paste0("searchButton1 -> ", searchButton1$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-        write(paste0("searchButton2 -> ", searchButton2$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-        write(paste0("searchButton3 -> ", searchButton3$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-        write(paste0("searchButton4 -> ", searchButton4$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+        write(paste0("googleSearchButtonByFullXPath -> ", googleSearchButtonByFullXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+        write(paste0("googleSearchButtonByHalfXPath -> ", googleSearchButtonByHalfXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+        write(paste0("googleSearchButtonByClassName -> ", googleSearchButtonByClassName$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+        write(paste0("googleSearchButtonByAreaLabel -> ", googleSearchButtonByAreaLabel$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
         
         
-        if(searchButton1$result$subtype == "node"){
-          driver$Runtime$evaluate('document.evaluate(\'/html/body/div[3]/div[2]/form/div[1]/div[1]/div[2]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
-          
-        }else if(searchButton2$result$subtype == "node"){
-          driver$Runtime$evaluate('document.evaluate(\'//*[@id="tsf"]/div[1]/div[1]/div[2]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
-          
-          
-        }else if(searchButton4$result$subtype == "node"){
-          driver$Runtime$evaluate('document.querySelector("button[aria-label=\'Search\']").click()')
-          
-        }else if(searchButton3$result$subtype=="node"){
-          driver$Runtime$evaluate('document.querySelector("button.Tg7LZd").click()')
+        if(googleSearchButtonByFullXPath$result$subtype == "node"){
+          driver$Runtime$evaluate(paste0(fullXPathQuery, ".click()"))
+        }else if(googleSearchButtonByHalfXPath$result$subtype == "node"){
+          driver$Runtime$evaluate(paste0(halfXPathQuery, ".click()"))
+        }else if(googleSearchButtonByAreaLabel$result$subtype == "node"){
+         driver$Runtime$evaluate(paste0(areaLabelQuery, ".click()"))
+        }else if(googleSearchButtonByClassName$result$subtype=="node"){
+          driver$Runtime$evaluate(paste0(classNameQuery, ".click()"))
         }
         Sys.sleep(3)
         
         notify(paste0("Searching neighbor hotels which are ", hotelStarType," star type"), id = id)
         
         # Click on the drop-down menu and check if it is exist by guestDropdownBtn$result$objectId
+
+        fullXPathQuery <- 'document.evaluate(\'/html/body/div[5]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[2]/div[3]/div/g-popup/div[1]/div/div/div/div[3]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
+        halfXPathQuery <- 'document.evaluate(\'//*[@id="Odp5De"]/div/div/div/div/div/div[2]/div[3]/div/g-popup/div[1]/div/div/div/div[3]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
+        classNameQuery <- 'document.querySelector("div.R2w7Jd")'
+        areaLabelQuery <- 'document.querySelector("div[aria-label=\'Select number of guests. Current selection is 2 guests\']")'
+
         checkActive()
         # browser()
         Sys.sleep(3)  
-        guestDropdownBtn1 <- driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[2]/div[3]/div/g-popup/div[1]/div/div/div/div[3]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+        guestDropdownBtnByFullXPath <- driver$Runtime$evaluate(fullXPathQuery)
         checkActive()
         #Sys.sleep(3)  
-        guestDropdownBtn2 <- driver$Runtime$evaluate('document.evaluate(\'//*[@id="Odp5De"]/div/div/div/div/div/div[2]/div[3]/div/g-popup/div[1]/div/div/div/div[3]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+        guestDropdownBtnByHalfXPath <- driver$Runtime$evaluate(halfXPathQuery)
         checkActive()
         #Sys.sleep(3)  
-        guestDropdownBtn3 <- driver$Runtime$evaluate('document.querySelector("div.R2w7Jd")')
+        guestDropdownBtnByAreaLabel <- driver$Runtime$evaluate(classNameQuery)
         checkActive()
         #Sys.sleep(3)  
-        guestDropdownBtn4 <- driver$Runtime$evaluate('document.querySelector("div[aria-label=\'Select number of guests. Current selection is 2 guests\']")')
+        guestDropdownBtnByClassName <- driver$Runtime$evaluate(areaLabelQuery)
         
-        write(paste0("guestDropdownBtn1 -> ", guestDropdownBtn1$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-        write(paste0("guestDropdownBtn2 -> ", guestDropdownBtn2$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-        write(paste0("guestDropdownBtn3 -> ", guestDropdownBtn3$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-        write(paste0("guestDropdownBtn4 -> ", guestDropdownBtn4$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+        write(paste0("guestDropdownBtnByFullXPath -> ", guestDropdownBtnByFullXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+        write(paste0("guestDropdownBtnByHalfXPath -> ", guestDropdownBtnByHalfXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+        write(paste0("guestDropdownBtnByAreaLabel -> ", guestDropdownBtnByAreaLabel$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+        write(paste0("guestDropdownBtnByClassName -> ", guestDropdownBtnByClassName$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
         
-        Sys.sleep(3)  
+        # Sys.sleep(3)
         #browser()
         
         
         # Click to open the drop down-menu.
-        if(guestDropdownBtn1$result$subtype == "node"){
+        if(guestDropdownBtnByFullXPath$result$subtype == "node"){
           checkActive()
-          driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[2]/div[3]/div/g-popup/div[1]/div/div/div/div[3]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
-          
-        }else if(guestDropdownBtn2$result$subtype == "node"){
+          driver$Runtime$evaluate(paste0(fullXPathQuery, ".click()"))
+        }else if(guestDropdownBtnByHalfXPath$result$subtype == "node"){
           checkActive()
-          driver$Runtime$evaluate('document.evaluate(\'//*[@id="Odp5De"]/div/div/div/div/div/div[2]/div[3]/div/g-popup/div[1]/div/div/div/div[3]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
-        }else if(guestDropdownBtn4$result$subtype=="node"){
+          driver$Runtime$evaluate(paste0(halfXPathQuery, ".click()"))
+        }else if(guestDropdownBtnByAreaLabel$result$subtype=="node"){
           checkActive()
-          driver$Runtime$evaluate('document.querySelector("div[aria-label=\'Select number of guests. Current selection is 2 guests\']").click()')
-        }else if(guestDropdownBtn3$result$subtype == "node"){
+          driver$Runtime$evaluate(paste0(areaLabelQuery, ".click()"))
+        }else if(guestDropdownBtnByClassName$result$subtype == "node"){
           checkActive()
-          driver$Runtime$evaluate('document.querySelector("div.R2w7Jd").click()')
-          
+          driver$Runtime$evaluate(paste0(classNameQuery, ".click()"))
         }
         
-        if(is.null(guestDropdownBtn1$result$objectId) && is.null(guestDropdownBtn2$result$objectId) && is.null(guestDropdownBtn3$result$objectId)){
+        if(is.null(guestDropdownBtnByFullXPath$result$objectId) && is.null(guestDropdownBtnByHalfXPath$result$objectId) && is.null(guestDropdownBtnByAreaLabel$result$objectId) && is.null(guestDropdownBtnByClassName$result$objectId)){
           output$notFound <- renderText("Not found dropdown button!")
           Waiter$new(html = spin_wave())$hide()
           
         }else{
           # Click to select guest number 1 from the drop-down menu.
-          checkActive()
-          #browser()
-          button1 <- driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[2]/div[3]/div/g-popup/div[2]/ul/li[1]/a/div\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
-          checkActive()
-          button2<-driver$Runtime$evaluate('document.querySelector("div.JWXKNd")')
-          checkActive()
-          #browser()
-          button3<-driver$Runtime$evaluate('document.evaluate(\'//*[@id="Odp5De"]/div/div/div/div/div[2]/div[3]/div/g-popup/div[2]/ul/li[1]/a/div\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
-          
-          write(paste0("selectGuestButton1 -> ", button1$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-          write(paste0("selectGuestButton2 -> ", button2$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-          write(paste0("selectGuestButton3 -> ", button3$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          fullXPathQuery <- 'document.evaluate(\'/html/body/div[5]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[2]/div[3]/div/g-popup/div[2]/ul/li[1]/a/div\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
+          halfXPathQuery <- 'document.evaluate(\'//*[@id="Odp5De"]/div/div/div/div/div[2]/div[3]/div/g-popup/div[2]/ul/li[1]/a/div\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
+          classNameQuery <- 'document.querySelector("div.JWXKNd")'
 
-          if(button1$result$subtype=="node"){
+          checkActive()
+          #browser()
+          guestSelectbuttonByFullXPath <- driver$Runtime$evaluate(fullXPathQuery)
+          checkActive()
+          guestSelectbuttonByHalfXPath <- driver$Runtime$evaluate(halfXPathQuery)
+          checkActive()
+          guestSelectbuttonByClassName <- driver$Runtime$evaluate(classNameQuery)
+          #browser()
+          
+          
+          write(paste0("guestSelectbuttonByFullXPath -> ", guestSelectbuttonByFullXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("guestSelectbuttonByHalfXPath -> ", guestSelectbuttonByHalfXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("guestSelectbuttonByClassName -> ", guestSelectbuttonByClassName$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+
+          if(guestSelectbuttonByFullXPath$result$subtype=="node"){
             checkActive()
-            driver$Runtime$evaluate('document.evaluate(\'/html/body/div[5]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[2]/div[3]/div/g-popup/div[2]/ul/li[1]/a/div\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
-            
-          }else if(button3$result$subtype=="node"){
+            driver$Runtime$evaluate(paste0(fullXPathQuery, ".click()"))
+          }else if(guestSelectbuttonByHalfXPath$result$subtype=="node"){
             checkActive()
-            driver$Runtime$evaluate('document.evaluate(\'//*[@id="Odp5De"]/div/div/div/div/div[2]/div[3]/div/g-popup/div[2]/ul/li[1]/a/div\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
-          }else if(button2$result$subtype=="node"){
+            driver$Runtime$evaluate(paste0(halfXPathQuery, ".click()"))
+          }else if(guestSelectbuttonByClassName$result$subtype=="node"){
             checkActive()
-            driver$Runtime$evaluate('document.querySelector("div.JWXKNd").click()')
-            
+            driver$Runtime$evaluate(paste0(classNameQuery, ".click()"))
           }
           
           notify("Clicking on the dropdown button to select a number of guest ...", id = id)        
@@ -459,175 +554,211 @@ server <- function(input, output, session) {
           
           hotelRoomType <- c("Single", "Double", "Triple", "Family")
           # Click to open filter tab in the right side of the window.
+
+        fullXPathQuery <- 'document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[2]/div[1]/div/div/div[1]/div/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
+        halfXPathQuery <- 'document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[2]/div[1]/div/div/div[1]/div/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
+        classNameQuery <- 'document.querySelector("button.cd29Sd")'
+        areaLabelQuery <- 'document.querySelector("button[aria-label=\'All filters, 1 filter selected\']")'
+
           checkActive()
           #browser()
-          filterButton1<-driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[2]/div[1]/div/div/div[1]/div/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+          filterButtonByFullXPath<-driver$Runtime$evaluate(fullXPathQuery)
           checkActive()
-          filterButton2<-driver$Runtime$evaluate('document.querySelector("button.cd29Sd")')
+          filterButtonByHalfXPath<-driver$Runtime$evaluate(halfXPathQuery)
           checkActive()
-          filterButton3<-driver$Runtime$evaluate('document.querySelector("button[aria-label=\'All filters, 1 filter selected\']")')
+          filterButtonByAreaLabel<-driver$Runtime$evaluate(areaLabelQuery)
           checkActive()
-          filterButton4 <- driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[2]/div[1]/div/div/div[1]/div/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+          filterButtonByClassName <- driver$Runtime$evaluate(classNameQuery)
           
           
-          write(paste0("filterButton1 -> ", filterButton1$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-          write(paste0("filterButton2 -> ", filterButton2$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-          write(paste0("filterButton3 -> ", filterButton3$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-          write(paste0("filterButton4 -> ", filterButton4$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("filterButtonByFullXPath -> ", filterButtonByFullXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("filterButtonByHalfXPath -> ", filterButtonByHalfXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("filterButtonByAreaLabel -> ", filterButtonByAreaLabel$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("filterButtonByClassName -> ", filterButtonByClassName$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
           
           
-          if(filterButton4$result$subtype=="node"){
+          if(filterButtonByFullXPath$result$subtype=="node"){
             checkActive()
-            driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[2]/div[1]/div/div/div[1]/div/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
-          }else if(filterButton1$result$subtype=="node"){
+            driver$Runtime$evaluate(paste0(fullXPathQuery, ".click()"))
+          }else if(filterButtonByHalfXPath$result$subtype=="node"){
             checkActive()
-            driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[2]/div[1]/div/div/div[1]/div/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
-            
-          }else if(filterButton3$result$subtype=="node"){
+            driver$Runtime$evaluate(paste0(halfXPathQuery, ".click()"))
+          }else if(filterButtonByAreaLabel$result$subtype=="node"){
             checkActive()
-            driver$Runtime$evaluate('document.querySelector("document.querySelector("button[aria-label=\'All filters, 1 filter selected\']").click()')
-          }else if(filterButton2$result$subtype=="node"){
+            driver$Runtime$evaluate(paste0(areaLabelQuery, ".click()"))
+          }else if(filterButtonByClassName$result$subtype=="node"){
             checkActive()
-            driver$Runtime$evaluate('document.querySelector("button.cd29Sd").click()')
+            driver$Runtime$evaluate(paste0(classNameQuery, ".click()"))
           }
           notify("Opening filter tab to filter neighbor hotels ...", id = id)
           Sys.sleep(3)
           
           # Click to select relevant review button from the filter tab.
+          fullXPathQuery <- 'document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[2]/div[1]/div/div[2]/div[3]/div/div[2]/div/div[1]/div/div/section[1]/div/div/div/div[4]/label\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
+        halfXPathQuery <- 'document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[2]/div[1]/div/div[2]/div[3]/div/div[2]/div/div[1]/div/div/section[1]/div/div/div/div[4]/label\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
+        classNameQuery <- 'document.querySelector("input[value=\'13\']")'
+
           checkActive()
           #browser()
-          reviewBtn1 <- driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[2]/div[1]/div/div[2]/div[3]/div/div[2]/div/div[1]/div/div/section[1]/div/div/div/div[4]/label\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+          reviewBtnByFullXPath <- driver$Runtime$evaluate(fullXPathQuery)
           checkActive()
-          reviewBtn2 <- driver$Runtime$evaluate('document.querySelector("input[value=\'13\']")')
+          reviewBtnByHalfXPath <- driver$Runtime$evaluate(halfXPathQuery)
           checkActive()
-          reviewBtn3 <- driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[2]/div[1]/div/div[2]/div[3]/div/div[2]/div/div[1]/div/div/section[1]/div/div/div/div[4]/label\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+          reviewBtnByClassName <- driver$Runtime$evaluate(classNameQuery)
           
-          write(paste0("reviewBtn1 -> ", reviewBtn1$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-          write(paste0("reviewBtn2 -> ", reviewBtn2$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-          write(paste0("reviewBtn3 -> ", reviewBtn3$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("reviewBtnByFullXPath -> ", reviewBtnByFullXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("reviewBtnByHalfXPath -> ", reviewBtnByHalfXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("reviewBtnByClassName -> ", reviewBtnByClassName$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
 
-          if(reviewBtn3$result$subtype=="node"){
+          if(reviewBtnByFullXPath$result$subtype=="node"){
             checkActive()
-            driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[2]/div[1]/div/div[2]/div[3]/div/div[2]/div/div[1]/div/div/section[1]/div/div/div/div[4]/label\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
-          }else if(reviewBtn1$result$subtype=="node"){
+            driver$Runtime$evaluate(paste0(fullXPathQuery, ".click()"))
+          }else if(reviewBtnByHalfXPath$result$subtype=="node"){
             checkActive()
-            driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[2]/div[1]/div/div[2]/div[3]/div/div[2]/div/div[1]/div/div/section[1]/div/div/div/div[4]/label\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
-          }else if(reviewBtn2$result$subtype=="node"){
+            driver$Runtime$evaluate(paste0(halfXPathQuery, ".click()"))
+          }else if(reviewBtnByClassName$result$subtype=="node"){
             checkActive()
-            driver$Runtime$evaluate('document.querySelector("input[value=\'13\']").click()')
+            driver$Runtime$evaluate(paste0(classNameQuery, ".click()"))
           }
-          
           
           notify("Selecting hotels which has relevant reviews and ratings as yours ...", id = id)
           Sys.sleep(3)
           
           # Click to close filter tab.
+          fullXPathQuery <- 'document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[2]/div[1]/div/div[2]/div[3]/div/div[1]/div[2]/span/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
+          halfXPathQuery <- 'document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[2]/div[1]/div/div[2]/div[3]/div/div[1]/div[2]/span/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
+          classNameQuery <- 'document.querySelector("button.HJuSVb")'
+          areaLabelQuery <- 'document.querySelector("button[aria-label=\'Close dialogue\']")'
+
           checkActive()
           #browser()
-          filter1<-driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[2]/div[1]/div/div[2]/div[3]/div/div[1]/div[2]/span/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+          closeBtnFilterTabByFullXPath<-driver$Runtime$evaluate(fullXPathQuery)
           checkActive()
-          filter2<-driver$Runtime$evaluate('document.querySelector("button.HJuSVb")')
+          closeBtnFilterTabByHalfXPath<-driver$Runtime$evaluate(halfXPathQuery)
           checkActive()
-          filter3<-driver$Runtime$evaluate('document.querySelector("button[aria-label=\'Close dialogue\']")')
+          closeBtnFilterTabByAreaLabel<-driver$Runtime$evaluate(areaLabelQuery)
           checkActive()
-          filter4 <- driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[2]/div[1]/div/div[2]/div[3]/div/div[1]/div[2]/span/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+          closeBtnFilterTabByClassName <- driver$Runtime$evaluate(classNameQuery)
           
-          write(paste0("filterTabCloseBtn1 -> ", filter1$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-          write(paste0("filterTabCloseBtn2 -> ", filter2$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-          write(paste0("filterTabCloseBtn3 -> ", filter3$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-          write(paste0("filterTabCloseBtn4 -> ", filter4$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("closeBtnFilterTabByFullXPath -> ", closeBtnFilterTabByFullXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("closeBtnFilterTabByHalfXPath -> ", closeBtnFilterTabByHalfXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("closeBtnFilterTabByAreaLabel -> ", closeBtnFilterTabByAreaLabel$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("closeBtnFilterTabByClassName -> ", closeBtnFilterTabByClassName$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
           
-          if(filter4$result$subtype=="node"){
+          if(closeBtnFilterTabByFullXPath$result$subtype=="node"){
             checkActive()
-            driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[2]/div[1]/div/div[2]/div[3]/div/div[1]/div[2]/span/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
-            
-          }else if(filter1$result$subtype=="node"){
+            driver$Runtime$evaluate(paste0(fullXPathQuery, ".click()"))
+          }else if(closeBtnFilterTabByHalfXPath$result$subtype=="node"){
             checkActive()
-            driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[2]/div[1]/div/div[2]/div[3]/div/div[1]/div[2]/span/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
-          }else if(filter3$result$subtype=="node"){
+            driver$Runtime$evaluate(paste0(halfXPathQuery, ".click()"))
+          }else if(closeBtnFilterTabByAreaLabel$result$subtype=="node"){
             checkActive()
-            driver$Runtime$evaluate('document.querySelector("button[aria-label=\'Close dialogue\']").click()')
-          }else if(filter2$result$subtype=="node"){
+            driver$Runtime$evaluate(paste0(areaLabelQuery, ".click()"))
+          }else if(closeBtnFilterTabByClassName$result$subtype=="node"){
             checkActive()
-            driver$Runtime$evaluate('document.querySelector("button.HJuSVb").click()')
+            driver$Runtime$evaluate(paste0(classNameQuery, ".click()"))
           }
           Sys.sleep(3)
           userInputDate <- input$inputDate
           # Click to open date picker.
+          fullXPathQuery <- 'document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[2]/div/div/div[2]/div[1]/div/input\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
+          halfXPathQuery <- 'document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[2]/div/div/div[2]/div[1]/div/input\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
+          classNameQuery <- 'document.querySelector("input[placeholder=\'Check-in\']")'
           checkActive()
           #browser()
-          placeHolder1<-driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[2]/div/div/div[2]/div[1]/div/input\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+          datePickerByFullXpath <- driver$Runtime$evaluate(fullXPathQuery)
           
           checkActive()
-          placeHolder3 <- driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[2]/div/div/div[2]/div[1]/div/input\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+          datePickerByHalfXpath <- driver$Runtime$evaluate(halfXPathQuery)
           
           checkActive()
-          placeHolder2<-driver$Runtime$evaluate('document.querySelector("input[placeholder=\'Check-in\']")')
+          datePickerByClassName<-driver$Runtime$evaluate(classNameQuery)
           
-          write(paste0("datePickerPlaceHolder1 -> ", placeHolder1$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-          write(paste0("datePickerPlaceHolder2 -> ", placeHolder2$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-          write(paste0("datePickerPlaceHolder3 -> ", placeHolder3$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("datePickerByFullXpath -> ", datePickerByFullXpath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("datePickerByHalfXpath -> ", datePickerByHalfXpath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("datePickerByClassName -> ", datePickerByClassName$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
 
-          if(placeHolder3$result$subtype=="node"){
+          if(datePickerByFullXpath$result$subtype=="node"){
             checkActive()
-            driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[2]/div/div/div[2]/div[1]/div/input\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
-          }else if(placeHolder1$result$subtype=="node"){
+            driver$Runtime$evaluate(paste0(fullXPathQuery, ".click()"))
+          }else if(datePickerByHalfXpath$result$subtype=="node"){
             checkActive()
-            driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[2]/div/div/div[2]/div[1]/div/input\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
-          }else if(placeHolder2$result$subtype=="node"){
+            driver$Runtime$evaluate(paste0(halfXPathQuery, ".click()"))
+          }else if(datePickerByClassName$result$subtype=="node"){
             checkActive()
-            driver$Runtime$evaluate('document.querySelector("input[placeholder=\'Check-in\']").click()')
+            driver$Runtime$evaluate(paste0(classNameQuery, ".click()"))
           } 
           notify("Opening date picker ...", id = id)
           Sys.sleep(3)
           # Click to select check-in date from date picker.
+          classNameQuery <- paste0('document.querySelector("',paste0("div[data-iso='", userInputDate, "']"),'")')
+          
           checkActive()
-          driver$Runtime$evaluate(paste0('document.querySelector("',paste0("div[data-iso='", userInputDate, "']"),'").click()'))
-          write(paste0("CheckInDate -> ", driver$Runtime$evaluate(paste0('document.querySelector("',paste0("div[data-iso='", userInputDate, "']"),'")'))$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          checkInDateBtn <- driver$Runtime$evaluate(classNameQuery)
+
+          write(paste0("checkInDateBtn -> ", checkInDateBtn$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          driver$Runtime$evaluate(paste0(classNameQuery, ".click()"))
           
           notify("Selecting check-in date ...", id = id)
           Sys.sleep(3)
           
           # Click to select check-out date from date picker.
+          classNameQuery <- paste0('document.querySelector("',paste0("div[data-iso='", userInputDate + 1, "']"),'")')
+          
           checkActive()
-          driver$Runtime$evaluate(paste0('document.querySelector("',paste0("div[data-iso='", userInputDate + 1, "']"),'").click()'))
-          write(paste0("CheckOutDate -> ", driver$Runtime$evaluate(paste0('document.querySelector("',paste0("div[data-iso='", userInputDate + 1, "']"),'")'))$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          checkOutDateBtn <- driver$Runtime$evaluate(classNameQuery)
+          write(paste0("checkOutDateBtn -> ", checkOutDateBtn$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          
+          driver$Runtime$evaluate(paste0(classNameQuery, ".click()"))
           
           notify("Selecting check-out date ...", id = id)
           Sys.sleep(3)
           
           # Retrieve current date from date picker.
+          currentDate <- NULL
+
+          classNameQuery1 <- 'document.querySelector(".HDland").getAttribute("data-iso")'
+          classNameQuery2 <- 'document.querySelector("div[jsname=\'mG3Az\'][aria-selected=\'true\']").getAttribute("data-iso")'
+
           checkActive()
-          checkInDate <- driver$Runtime$evaluate('document.querySelector(".HDland").getAttribute("data-iso")')$result$value
-          write(paste0("CurrentDate1 -> ", driver$Runtime$evaluate('document.querySelector(".HDland")')$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-          write(paste0("CurrentDate2 -> ", driver$Runtime$evaluate('document.querySelector("div[jsname=\'mG3Az\'][aria-selected=\'true\']")')$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          currentDateByClassName1 <- driver$Runtime$evaluate(classNameQuery1)$result$value
+          currentDateByClassName2 <- driver$Runtime$evaluate(classNameQuery2)$result$value
+          # browser()
+
+          write(paste0("currentDateByClassName1 -> ", currentDateByClassName1, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("currentDateByClassName2 -> ", currentDateByClassName2, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+
+          currentDate <- currentDateByClassName1
           
-          if(is.null(checkInDate)){
-            checkInDate<-driver$Runtime$evaluate('document.querySelector("div[jsname=\'mG3Az\'][aria-selected=\'true\']").getAttribute("data-iso")')$result$value
+          if(is.null(currentDate)){
+            currentDate<-currentDateByClassName2
           }
           
           # Click to submit check-in and check-out date.
+          fullXPathQuery <- 'document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[2]/div/div[2]/div/div[2]/div[4]/div/button[2]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
+          halfXPathQuery <- 'document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[2]/div/div[2]/div/div[2]/div[4]/div/button[2]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
+          classNameQuery <- 'document.querySelector("button[jsname=\'iib5kc\']")'
           checkActive()
           #browser()
-          submitBtn1 <- driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[2]/div/div[2]/div/div[2]/div[4]/div/button[2]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+          submitDatePickerBtnByFullXPath <- driver$Runtime$evaluate(fullXPathQuery)
           checkActive()
-          submitBtn2 <- driver$Runtime$evaluate('document.querySelector("button[jsname=\'iib5kc\']")')
+          submitDatePickerBtnByHalfXPath <- driver$Runtime$evaluate(halfXPathQuery)
           checkActive()
-          submitBtn3 <- driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[2]/div/div[2]/div/div[2]/div[4]/div/button[2]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+          submitDatePickerBtnByClassName <- driver$Runtime$evaluate(classNameQuery)
           
-          write(paste0("submitBtn1 -> ", submitBtn1$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-          write(paste0("submitBtn2 -> ", submitBtn2$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-          write(paste0("submitBtn3 -> ", submitBtn3$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("submitDatePickerBtnByFullXPath -> ", submitDatePickerBtnByFullXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("submitDatePickerBtnByHalfXPath -> ", submitDatePickerBtnByHalfXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          write(paste0("submitDatePickerBtnByClassName -> ", submitDatePickerBtnByClassName$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
           
-          if(submitBtn3$result$subtype=="node"){
+          if(submitDatePickerBtnByFullXPath$result$subtype=="node"){
             checkActive()
-            driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[2]/div/div[2]/div/div[2]/div[4]/div/button[2]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
-          }else if(submitBtn1$result$subtype=="node"){
+            driver$Runtime$evaluate(paste0(fullXPathQuery, ".click()"))
+          }else if(submitDatePickerBtnByHalfXPath$result$subtype=="node"){
             checkActive()
-            driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[2]/div/div[2]/div/div[2]/div[4]/div/button[2]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
-          }else if(submitBtn2$result$subtype=="node"){
+            driver$Runtime$evaluate(paste0(halfXPathQuery, ".click()"))
+          }else if(submitDatePickerBtnByClassName$result$subtype=="node"){
             checkActive()
-            driver$Runtime$evaluate('document.querySelector("button[jsname=\'iib5kc\']").click()')
+            driver$Runtime$evaluate(paste0(classNameQuery, ".click()"))
           } 
           notify("Submit date picker...", id = id)
           Sys.sleep(3)
@@ -659,7 +790,7 @@ server <- function(input, output, session) {
                  elementPrices.join("@");'
               )
               
-              write(paste0(room,"RoomPriceElementForPage-",i ," -> ", gsub("\n", " ", priceElement$result$value), "\n"), debugFileUrl, sep = "\n", append = TRUE)
+              write(paste0(room,"RoomPriceForPage-",i ," -> ", gsub("\n", " ", priceElement$result$value), "\n"), debugFileUrl, sep = "\n", append = TRUE)
               
               splittedPriceElements <- unlist(strsplit(priceElement$result$value, "@"))
               
@@ -686,7 +817,7 @@ server <- function(input, output, session) {
                  elementRatings.join("\\n");'
               )
               
-              write(paste0(room,"RoomRatingElementForPage-",i ," -> ", gsub("\n", " ", ratingElement$result$value), "\n"), debugFileUrl, sep = "\n", append = TRUE)
+              write(paste0(room,"RoomRatingForPage-",i ," -> ", gsub("\n", " ", ratingElement$result$value), "\n"), debugFileUrl, sep = "\n", append = TRUE)
               
               splittedRatingElements <- strsplit(ratingElement$result$value, "\n")
               neighborHotelRatings <- lapply(splittedRatingElements, function(aElement){
@@ -707,7 +838,7 @@ server <- function(input, output, session) {
                  elementReviews.join("\\n");'
               )
               
-              write(paste0(room,"RoomReviewElementForPage-",i ," -> ", gsub("\n", " ", reviewElement$result$value), "\n"), debugFileUrl, sep = "\n", append = TRUE)
+              write(paste0(room,"RoomReviewForPage-",i ," -> ", gsub("\n", " ", reviewElement$result$value), "\n"), debugFileUrl, sep = "\n", append = TRUE)
               
               splittedReviewElements <- strsplit(reviewElement$result$value, "\n")
               
@@ -729,7 +860,7 @@ server <- function(input, output, session) {
                  elementHotelNames.join("\\n");'
               )
               
-              write(paste0(room,"RoomHotelNameElementForPage-",i ," -> ", gsub("\n", " ", hotelNameElement$result$value), "\n"), debugFileUrl, sep = "\n", append = TRUE)
+              write(paste0(room,"RoomHotelNameForPage-",i ," -> ", gsub("\n", " ", hotelNameElement$result$value), "\n"), debugFileUrl, sep = "\n", append = TRUE)
               
               splittedHotelNameElements <- strsplit(hotelNameElement$result$value, "\n")
               
@@ -740,30 +871,34 @@ server <- function(input, output, session) {
               neighborHotelNamesList <- c(neighborHotelNamesList, neighborHotelNames)
               
               # Clicking on next button 
+              fullXPathQuery <- 'document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[2]/div[2]/main/c-wiz/span/c-wiz/c-wiz[22]/div[1]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
+              halfXPathQuery <- 'document.evaluate(\'//*[@id="id"]/c-wiz/c-wiz[22]/div[1]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
+              classNameQuery <- 'document.querySelector("button[jsname=\'OCpkoe\']")'
+
               checkActive()
-              nextBtn1 <- driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[2]/div[2]/main/c-wiz/span/c-wiz/c-wiz[22]/div[1]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+              nextPageScanningBtnByFullXPath <- driver$Runtime$evaluate(fullXPathQuery)
               checkActive()
-              nextBtn2 <- driver$Runtime$evaluate('document.evaluate(\'//*[@id="id"]/c-wiz/c-wiz[22]/div[1]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+              nextPageScanningBtnByHalfXPath <- driver$Runtime$evaluate(halfXPathQuery)
               checkActive()
-              nextBtn3 <- driver$Runtime$evaluate('document.querySelector("button[jsname=\'OCpkoe\']")')
+              nextPageScanningBtnByClassName <- driver$Runtime$evaluate(classNameQuery)
               
-              write(paste0(room, "RoomNextBtn1 -> ", nextBtn1$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-              write(paste0(room, "RoomNextBtn2 -> ", nextBtn2$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-              write(paste0(room, "RoomNextBtn3 -> ", nextBtn3$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+              write(paste0(room, "RoomNextPageScanningBtnByFullXPath -> ", nextPageScanningBtnByFullXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+              write(paste0(room, "RoomNextPageScanningBtnByHalfXPath -> ", nextPageScanningBtnByHalfXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+              write(paste0(room, "RoomNextPageScanningBtnByClassName -> ", nextPageScanningBtnByClassName$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
               
               if(i == numberOfPageToScan){
                 break
               }
               
-              if(nextBtn1$result$subtype=="node"){
+              if(nextPageScanningBtnByFullXPath$result$subtype=="node"){
                 checkActive()
-                driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[2]/div[2]/main/c-wiz/span/c-wiz/c-wiz[22]/div[1]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
-              }else if(nextBtn2$result$subtype=="node"){
+                driver$Runtime$evaluate(paste0(fullXPathQuery, ".click()"))
+              }else if(nextPageScanningBtnByHalfXPath$result$subtype=="node"){
                 checkActive()
-                driver$Runtime$evaluate('document.evaluate(\'//*[@id="id"]/c-wiz/c-wiz[22]/div[1]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
-              }else if(nextBtn3$result$subtype=="node"){
+                driver$Runtime$evaluate(paste0(halfXPathQuery, ".click()"))
+              }else if(nextPageScanningBtnByClassName$result$subtype=="node"){
                 checkActive()
-                driver$Runtime$evaluate('document.querySelector("button[jsname=\'OCpkoe\']").click()')
+                driver$Runtime$evaluate(paste0(classNameQuery, ".click()"))
               }else{
                 break
               }
@@ -781,94 +916,109 @@ server <- function(input, output, session) {
               break
             }
             # Click on the '+' button to increase the guest number by 1. !by following Nr. 281 Line!
+            fullXPathQuery <- 'document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[1]/div\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
+            halfXPathQuery <- 'document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[1]/div\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
+            classNameQuery <- 'document.querySelector("div.r0Ogod")'
+            areaLabelQuery <- paste0('document.querySelector("[aria-label=\'Number of travellers. Current number of travellers is ', i, '.\']")')
             checkActive()
             #browser()
-            buttonToSubmit1<-driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[1]/div\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+            guestDropdownBtnByFullXPath<-driver$Runtime$evaluate(fullXPathQuery)
             checkActive()
-            buttonToSubmit2<-driver$Runtime$evaluate('document.querySelector("div.r0Ogod")')  
+            guestDropdownBtnByHalfXPath<-driver$Runtime$evaluate(halfXPathQuery)  
             checkActive()
-            buttonToSubmit4 <- driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[1]/div\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+            guestDropdownBtnByAreaLabel <- driver$Runtime$evaluate(areaLabelQuery)
             checkActive()
-            buttonToSubmit3<-driver$Runtime$evaluate(paste0('document.querySelector("[aria-label=\'Number of travellers. Current number of travellers is ', i, '.\']")'))      
+            guestDropdownBtnByClassName<-driver$Runtime$evaluate(classNameQuery)      
             
-            write(paste0(room, "RoomButtonToSubmit1 -> ", buttonToSubmit1$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-            write(paste0(room, "RoomButtonToSubmit2 -> ", buttonToSubmit2$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-            write(paste0(room, "RoomButtonToSubmit3 -> ", buttonToSubmit3$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-            write(paste0(room, "RoomButtonToSubmit4 -> ", buttonToSubmit4$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+            write(paste0(room, "RoomGuestDropdownBtnByFullXPath -> ", guestDropdownBtnByFullXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+            write(paste0(room, "RoomGuestDropdownBtnByHalfXPath -> ", guestDropdownBtnByHalfXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+            write(paste0(room, "RoomGuestDropdownBtnByAreaLabel -> ", guestDropdownBtnByAreaLabel$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+            write(paste0(room, "RoomGuestDropdownBtnByClassName -> ", guestDropdownBtnByClassName$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
             
-            if(buttonToSubmit4$result$subtype=="node"){
+            if(guestDropdownBtnByFullXPath$result$subtype=="node"){
               checkActive()
-              driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[1]/div\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
-            }else if(buttonToSubmit1$result$subtype=="node"){
+              driver$Runtime$evaluate(paste0(fullXPathQuery, ".click()"))
+            }else if(guestDropdownBtnByHalfXPath$result$subtype=="node"){
               checkActive()
-              driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[1]/div\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
-            }else if(buttonToSubmit3$result$subtype=="node"){
+              driver$Runtime$evaluate(paste0(halfXPathQuery, ".click()"))
+            }else if(guestDropdownBtnByAreaLabel$result$subtype=="node"){
               checkActive()
-              driver$Runtime$evaluate(paste0('document.querySelector("[aria-label=\'Number of travellers. Current number of travellers is ', i, '.\']").click()'))
-            }else if(buttonToSubmit2$result$subtype=="node"){
+              driver$Runtime$evaluate(paste0(areaLabelQuery, ".click()"))
+            }else if(guestDropdownBtnByClassName$result$subtype=="node"){
               checkActive()
-              driver$Runtime$evaluate('document.querySelector("div.r0Ogod").click()')  
+              driver$Runtime$evaluate(paste0(classNameQuery, ".click()"))
             } 
             i <- i+1
             
             notify("Clicking on the '+' button to increase the guest number by 1 ...", id = id)
             Sys.sleep(3)
             #browser()
+
+            fullXPathQuery <- 'document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[2]/div[2]/div[1]/div[1]/div[2]/div/span[3]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
+            halfXPathQuery <- 'document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[2]/div[2]/div[1]/div[1]/div[2]/div/span[3]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
+            classNameQuery <- 'document.querySelector("button.VfPpkd-ksKsZd-mWPk3d")'
+            areaLabelQuery <- 'document.querySelector("button[aria-label=\'Add adult\']")'
+
             checkActive()
-            increaseButton1 <- driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[2]/div[2]/div[1]/div[1]/div[2]/div/span[3]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+            increaseGuestButtonByFullXPath <- driver$Runtime$evaluate(fullXPathQuery)
             checkActive()
-            increaseButton2 <- driver$Runtime$evaluate('document.querySelector("button.VfPpkd-ksKsZd-mWPk3d")')
+            increaseGuestButtonByHalfXPath <- driver$Runtime$evaluate(halfXPathQuery)
             checkActive()
-            increaseButton3<-driver$Runtime$evaluate('document.querySelector("button[aria-label=\'Add adult\']")')
+            increaseGuestButtonByAreaLabel <- driver$Runtime$evaluate(areaLabelQuery)
             checkActive()
-            increaseButton4 <- driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[2]/div[2]/div[1]/div[1]/div[2]/div/span[3]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+            increaseGuestButtonByClassName <- driver$Runtime$evaluate(classNameQuery)
             
-            write(paste0(room, "RoomIncreaseButton1 -> ", increaseButton1$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-            write(paste0(room, "RoomIncreaseButton2 -> ", increaseButton2$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-            write(paste0(room, "RoomIncreaseButton3 -> ", increaseButton3$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-            write(paste0(room, "RoomIncreaseButton4 -> ", increaseButton4$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+            write(paste0(room, "RoomIncreaseGuestButtonByFullXPath -> ", increaseGuestButtonByFullXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+            write(paste0(room, "RoomIncreaseGuestButtonByHalfXPath -> ", increaseGuestButtonByHalfXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+            write(paste0(room, "RoomIncreaseGuestButtonByAreaLabel -> ", increaseGuestButtonByAreaLabel$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+            write(paste0(room, "RoomIncreaseGuestButtonByClassName -> ", increaseGuestButtonByClassName$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
             
-            if(increaseButton4$result$subtype=="node"){
+            if(increaseGuestButtonByFullXPath$result$subtype=="node"){
               checkActive()
-              driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[2]/div[2]/div[1]/div[1]/div[2]/div/span[3]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
-            }else if(increaseButton1$result$subtype=="node"){
+              driver$Runtime$evaluate(paste0(fullXPathQuery, ".click()"))
+            }else if(increaseGuestButtonByHalfXPath$result$subtype=="node"){
               checkActive()
-              driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[2]/div[2]/div[1]/div[1]/div[2]/div/span[3]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
-            }else if(increaseButton3$result$subtype=="node"){
+              driver$Runtime$evaluate(paste0(halfXPathQuery, ".click()"))
+            }else if(increaseGuestButtonByAreaLabel$result$subtype=="node"){
               checkActive()
-              driver$Runtime$evaluate('document.querySelector("button[aria-label=\'Add adult\']").click()')
-            }else if(increaseButton2$result$subtype=="node"){
+              driver$Runtime$evaluate(paste0(areaLabelQuery, ".click()"))
+            }else if(increaseGuestButtonByClassName$result$subtype=="node"){
               checkActive()
-              driver$Runtime$evaluate('document.querySelector("button.VfPpkd-ksKsZd-mWPk3d").click()')
+              driver$Runtime$evaluate(paste0(classNameQuery, ".click()"))
             } 
             notify(paste0("Looking for the price of ",room," room ..."), id = id)
             Sys.sleep(2)
             
             # Click on the submit button
+            fullXPathQuery <- 'document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[2]/div[2]/div[2]/div[2]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
+            halfXPathQuery <- 'document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[2]/div[2]/div[2]/div[2]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
+            classNameQuery1 <- 'document.querySelector("button.TkZUKc ")'
+            classNameQuery2 <- 'document.querySelector("button[jsname=\'kZlJze\']")'
+
             checkActive()
             #browser()
-            submitBtn1 <- driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[2]/div[2]/div[2]/div[2]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
-            submitBtn2 <- driver$Runtime$evaluate('document.querySelector("button.TkZUKc ")')            
-            submitBtn3 <- driver$Runtime$evaluate('document.querySelector("button[jsname=\'kZlJze\']")')   
-            submitBtn4 <- driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[2]/div[2]/div[2]/div[2]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue')
+            submitGuestBtnByFullXPath <- driver$Runtime$evaluate(fullXPathQuery)
+            submitGuestBtnByHalfXPath <- driver$Runtime$evaluate(halfXPathQuery)            
+            submitGuestBtnByClassName1 <- driver$Runtime$evaluate(classNameQuery1)   
+            submitGuestBtnByClassName2 <- driver$Runtime$evaluate(classNameQuery2)
             
-            write(paste0(room, "RoomSubmitButton1 -> ", submitBtn1$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-            write(paste0(room, "RoomSubmitButton2 -> ", submitBtn2$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-            write(paste0(room, "RoomSubmitButton3 -> ", submitBtn3$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
-            write(paste0(room, "RoomSubmitButton4 -> ", submitBtn4$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+            write(paste0(room, "RoomSubmitGuestBtnByFullXPath -> ", submitGuestBtnByFullXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+            write(paste0(room, "RoomSubmitGuestBtnByHalfXPath -> ", submitGuestBtnByHalfXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+            write(paste0(room, "RoomSubmitGuestBtnByClassName1 -> ", submitGuestBtnByClassName1$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+            write(paste0(room, "RoomSubmitGuestBtnByClassName2 -> ", submitGuestBtnByClassName2$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
             
-            if(submitBtn4$result$subtype=="node"){
+            if(submitGuestBtnByFullXPath$result$subtype=="node"){
               checkActive()
-              driver$Runtime$evaluate('document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[2]/div[2]/div[2]/div[2]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
-            }else if(submitBtn1$result$subtype=="node"){
+              driver$Runtime$evaluate(paste0(fullXPathQuery, ".click()"))
+            }else if(submitGuestBtnByHalfXPath$result$subtype=="node"){
               checkActive()
-              driver$Runtime$evaluate('document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[2]/div[2]/div[2]/div[2]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.click()')
-            }else if(submitBtn3$result$subtype=="node"){
+              driver$Runtime$evaluate(paste0(halfXPathQuery, ".click()"))
+            }else if(submitGuestBtnByClassName1$result$subtype=="node"){
               checkActive()
-              driver$Runtime$evaluate('document.querySelector("button[jsname=\'kZlJze\']").click()')   
-            }else if(submitBtn2$result$subtype=="node"){
+              driver$Runtime$evaluate(paste0(classNameQuery1, ".click()"))  
+            }else if(submitGuestBtnByClassName2$result$subtype=="node"){
               checkActive()
-              driver$Runtime$evaluate('document.querySelector("button.TkZUKc ").click()')   
+              driver$Runtime$evaluate(paste0(classNameQuery2, ".click()")) 
             } 
             Sys.sleep(3)
           }
@@ -890,7 +1040,7 @@ server <- function(input, output, session) {
             currencySymbol <- str_remove_all(neighHotelDetailsForAllRoomType$Prices[1],"[0-9.,]")
             # print(neighHotelDetailsForAllRoomType)
             # browser()
-            makeNetworkGraph(neighHotelDetailsForAllRoomType, targetHotel, hotelRating, hotelReviews, checkInDate, currencySymbol, output)
+            makeNetworkGraph(neighHotelDetailsForAllRoomType, targetHotel, hotelRating, hotelReviews, currentDate, currencySymbol, output)
           }else{
             output$notFound <- renderText("Not found any competitor hotel!")
             Waiter$new(html = spin_wave())$hide()
