@@ -66,6 +66,11 @@ server <- function(input, output, session) {
     output$graph <- renderUI({});
     output$data <- renderTable({})
     output$notFound <- renderText("")
+    
+    divider <- function(){
+      write("--------------------------------------------------------------------------\n", debugFileUrl, sep = "\n", append = TRUE)
+    }
+    
     splitHotelName <- findSplitHotelName(input$hotelName)
     city <- NULL
     YES <- 1
@@ -114,6 +119,7 @@ server <- function(input, output, session) {
       checkActive()
       textarea <- driver$Runtime$evaluate(paste0('document.querySelector("textarea").value = "', googleSearchText,'"'))
       write(paste0("SearchField -> ", textarea$resul$value, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+      divider()
       # browser()
       # ! ?? is there any chance to add here XPath as a button !
       queryGoogleSearchByAria <- queryGoogleSearchByClass <- NULL
@@ -128,6 +134,7 @@ server <- function(input, output, session) {
 
       write(paste0("queryGoogleSearchByAria -> ", queryGoogleSearchByAria$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
       write(paste0("queryGoogleSearchByClass -> ", queryGoogleSearchByClass$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+      divider()
       
       if(queryGoogleSearchByAria$result$subtype == "node"){
         checkActive()
@@ -159,6 +166,7 @@ server <- function(input, output, session) {
       write(paste0("divSecFromGooglePageByPartialXpath -> ", gsub("\n", " ", divSecFromGooglePageByHalfXPath), "\n"), debugFileUrl, sep = "\n", append = TRUE)
       write(paste0("divSecFromGooglePageByAriaLabel -> ", gsub("\n", " ",divSecFromGooglePageByAreaLabel), "\n"), debugFileUrl, sep = "\n", append = TRUE)
       write(paste0("divSecFromGooglePageByClass -> ", gsub("\n", " ", divSecFromGooglePageByClass), "\n"), debugFileUrl, sep = "\n", append = TRUE)
+      divider()
       
       # divSecFromGooglePage <- divSecFromGooglePage %>% as.character() %>% tolower()
       
@@ -208,6 +216,7 @@ server <- function(input, output, session) {
         write(paste0("checkHotelStarTypeByPartialXpath -> ", checkHotelStarTypeByHalfXpath, "\n"), debugFileUrl, sep = "\n", append = TRUE)
         write(paste0("checkHotelStarTypeByClassName1 -> ", checkHotelStarTypeByClassName1, "\n"), debugFileUrl, sep = "\n", append = TRUE)
         write(paste0("checkHotelStarTypeByClassName2 -> ", checkHotelStarTypeByClassName2, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+        divider()
         
         checkHotelStarType <- checkHotelStarTypeByFullXpath
         
@@ -244,6 +253,7 @@ server <- function(input, output, session) {
           write(paste0("hotelRatingByFullXpath -> ", hotelRatingByFullXPath, "\n"), debugFileUrl, sep = "\n", append = TRUE)
           write(paste0("hotelRatingByPartialXpath -> ", hotelRatingByHalfXpath, "\n"), debugFileUrl, sep = "\n", append = TRUE)
           write(paste0("hotelRatingByClassName -> ",hotelRatingByClassName, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          divider()
           
           hotelRating <- hotelRatingByFullXPath
           
@@ -274,6 +284,7 @@ server <- function(input, output, session) {
           write(paste0("hotelReviewsByFullXpath -> ", hotelReviewsByFullXPath, "\n"), debugFileUrl, sep = "\n", append = TRUE)
           write(paste0("hotelReviewsByPartialXpath -> ", hotelReviewsByHalfXPath, "\n"), debugFileUrl, sep = "\n", append = TRUE)
           write(paste0("hotelReviewsByClassName -> ", hotelReviewsByClassName, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          divider()
           
           hotelReviews <- hotelReviewsByFullXPath
           
@@ -308,6 +319,7 @@ server <- function(input, output, session) {
           write(paste0("hotelRatingFromDivSectionByFullXpath -> ", hotelRatingByFullXPath, "\n"), debugFileUrl, sep = "\n", append = TRUE)
           write(paste0("hotelRatingFromDivSectionByPartialXpath -> ", hotelRatingByHalfXpath, "\n"), debugFileUrl, sep = "\n", append = TRUE)
           write(paste0("hotelRatingFromDivSectionByClassName -> ",hotelRatingByClassName, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          divider()
           
           # browser()
           # !! TO DO 4 done 
@@ -340,6 +352,7 @@ server <- function(input, output, session) {
           write(paste0("hotelReviewsFromDivSectionByFullXpath -> ", hotelReviewsByFullXPath, "\n"), debugFileUrl, sep = "\n", append = TRUE)
           write(paste0("hotelReviewsFromDivSectionByPartialXpath -> ", hotelReviewsByClassName, "\n"), debugFileUrl, sep = "\n", append = TRUE)
           write(paste0("hotelReviewsFromDivSectionByClassName -> ", hotelReviewsByClassName, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          divider()
           
           hotelReviews <- hotelReviewsByFullXPath
           
@@ -377,6 +390,7 @@ server <- function(input, output, session) {
           write(paste0("hotelRatingByFullXpath -> ", hotelRatingByFullXPath, "\n"), debugFileUrl, sep = "\n", append = TRUE)
           write(paste0("hotelRatingByPartialXpath -> ", hotelRatingByHalfXpath, "\n"), debugFileUrl, sep = "\n", append = TRUE)
           write(paste0("hotelRatingByClassName -> ",hotelRatingByClassName, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          divider()
           
           hotelRating <- hotelRatingByFullXPath
           
@@ -410,6 +424,7 @@ server <- function(input, output, session) {
           write(paste0("hotelReviewsByPartialXpath -> ", hotelReviewsByHalfXPath, "\n"), debugFileUrl, sep = "\n", append = TRUE)
           write(paste0("hotelReviewsByClassName1 -> ", hotelReviewsByClassName1, "\n"), debugFileUrl, sep = "\n", append = TRUE)
           write(paste0("hotelReviewsByClassName2 -> ", hotelReviewsByClassName2, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          divider()
           
           hotelReviews <- hotelReviewsByFullXPath
           
@@ -454,6 +469,7 @@ server <- function(input, output, session) {
         write(paste0("googleSearchButtonByHalfXPath -> ", googleSearchButtonByHalfXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
         write(paste0("googleSearchButtonByClassName -> ", googleSearchButtonByClassName$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
         write(paste0("googleSearchButtonByAreaLabel -> ", googleSearchButtonByAreaLabel$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+        divider()
         
         
         if(googleSearchButtonByFullXPath$result$subtype == "node"){
@@ -494,6 +510,7 @@ server <- function(input, output, session) {
         write(paste0("guestDropdownBtnByHalfXPath -> ", guestDropdownBtnByHalfXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
         write(paste0("guestDropdownBtnByAreaLabel -> ", guestDropdownBtnByAreaLabel$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
         write(paste0("guestDropdownBtnByClassName -> ", guestDropdownBtnByClassName$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+        divider()
         
         # Sys.sleep(3)
         #browser()
@@ -537,6 +554,7 @@ server <- function(input, output, session) {
           write(paste0("guestSelectbuttonByFullXPath -> ", guestSelectbuttonByFullXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
           write(paste0("guestSelectbuttonByHalfXPath -> ", guestSelectbuttonByHalfXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
           write(paste0("guestSelectbuttonByClassName -> ", guestSelectbuttonByClassName$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          divider()
 
           if(guestSelectbuttonByFullXPath$result$subtype=="node"){
             checkActive()
@@ -575,6 +593,7 @@ server <- function(input, output, session) {
           write(paste0("filterButtonByHalfXPath -> ", filterButtonByHalfXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
           write(paste0("filterButtonByAreaLabel -> ", filterButtonByAreaLabel$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
           write(paste0("filterButtonByClassName -> ", filterButtonByClassName$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          divider()
           
           
           if(filterButtonByFullXPath$result$subtype=="node"){
@@ -609,6 +628,7 @@ server <- function(input, output, session) {
           write(paste0("reviewBtnByFullXPath -> ", reviewBtnByFullXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
           write(paste0("reviewBtnByHalfXPath -> ", reviewBtnByHalfXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
           write(paste0("reviewBtnByClassName -> ", reviewBtnByClassName$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          divider()
 
           if(reviewBtnByFullXPath$result$subtype=="node"){
             checkActive()
@@ -644,6 +664,7 @@ server <- function(input, output, session) {
           write(paste0("closeBtnFilterTabByHalfXPath -> ", closeBtnFilterTabByHalfXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
           write(paste0("closeBtnFilterTabByAreaLabel -> ", closeBtnFilterTabByAreaLabel$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
           write(paste0("closeBtnFilterTabByClassName -> ", closeBtnFilterTabByClassName$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          divider()
           
           if(closeBtnFilterTabByFullXPath$result$subtype=="node"){
             checkActive()
@@ -677,6 +698,7 @@ server <- function(input, output, session) {
           write(paste0("datePickerByFullXpath -> ", datePickerByFullXpath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
           write(paste0("datePickerByHalfXpath -> ", datePickerByHalfXpath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
           write(paste0("datePickerByClassName -> ", datePickerByClassName$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          divider()
 
           if(datePickerByFullXpath$result$subtype=="node"){
             checkActive()
@@ -727,6 +749,7 @@ server <- function(input, output, session) {
 
           write(paste0("currentDateByClassName1 -> ", currentDateByClassName1, "\n"), debugFileUrl, sep = "\n", append = TRUE)
           write(paste0("currentDateByClassName2 -> ", currentDateByClassName2, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          divider()
 
           currentDate <- currentDateByClassName1
           
@@ -749,6 +772,7 @@ server <- function(input, output, session) {
           write(paste0("submitDatePickerBtnByFullXPath -> ", submitDatePickerBtnByFullXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
           write(paste0("submitDatePickerBtnByHalfXPath -> ", submitDatePickerBtnByHalfXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
           write(paste0("submitDatePickerBtnByClassName -> ", submitDatePickerBtnByClassName$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+          divider()
           
           if(submitDatePickerBtnByFullXPath$result$subtype=="node"){
             checkActive()
@@ -885,6 +909,7 @@ server <- function(input, output, session) {
               write(paste0(room, "RoomNextPageScanningBtnByFullXPath -> ", nextPageScanningBtnByFullXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
               write(paste0(room, "RoomNextPageScanningBtnByHalfXPath -> ", nextPageScanningBtnByHalfXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
               write(paste0(room, "RoomNextPageScanningBtnByClassName -> ", nextPageScanningBtnByClassName$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+              divider()
               
               if(i == numberOfPageToScan){
                 break
@@ -934,6 +959,7 @@ server <- function(input, output, session) {
             write(paste0(room, "RoomGuestDropdownBtnByHalfXPath -> ", guestDropdownBtnByHalfXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
             write(paste0(room, "RoomGuestDropdownBtnByAreaLabel -> ", guestDropdownBtnByAreaLabel$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
             write(paste0(room, "RoomGuestDropdownBtnByClassName -> ", guestDropdownBtnByClassName$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+            divider()
             
             if(guestDropdownBtnByFullXPath$result$subtype=="node"){
               checkActive()
@@ -972,6 +998,7 @@ server <- function(input, output, session) {
             write(paste0(room, "RoomIncreaseGuestButtonByHalfXPath -> ", increaseGuestButtonByHalfXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
             write(paste0(room, "RoomIncreaseGuestButtonByAreaLabel -> ", increaseGuestButtonByAreaLabel$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
             write(paste0(room, "RoomIncreaseGuestButtonByClassName -> ", increaseGuestButtonByClassName$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+            divider()
             
             if(increaseGuestButtonByFullXPath$result$subtype=="node"){
               checkActive()
@@ -1006,6 +1033,7 @@ server <- function(input, output, session) {
             write(paste0(room, "RoomSubmitGuestBtnByHalfXPath -> ", submitGuestBtnByHalfXPath$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
             write(paste0(room, "RoomSubmitGuestBtnByClassName1 -> ", submitGuestBtnByClassName1$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
             write(paste0(room, "RoomSubmitGuestBtnByClassName2 -> ", submitGuestBtnByClassName2$result$description, "\n"), debugFileUrl, sep = "\n", append = TRUE)
+            divider()
             
             if(submitGuestBtnByFullXPath$result$subtype=="node"){
               checkActive()
