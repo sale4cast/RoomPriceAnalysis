@@ -201,7 +201,7 @@ server <- function(input, output, session) {
         
         checkHotelStarType <- NULL
         
-        fullXPathQuery <- 'document.evaluate(\'/html/body/div[5]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[3]\', document,null,XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
+        fullXPathQuery <- 'document.evaluate(\'/html/body/div[4]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[3]\', document,null,XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
         halfXPathQuery <- 'document.evaluate(\'//*[@id="rhs"]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[3]\', document,null,XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
         classNameQuery1 <- 'document.querySelector("span.E5BaQ").innerText'
         classNameQuery2 <- 'document.querySelector("span.YhemCb").innerText'
@@ -242,7 +242,7 @@ server <- function(input, output, session) {
           # For Hotel Rating
           hotelRating <- NULL
           
-          fullXPathQuery <- 'document.evaluate(\'/html/body/div[5]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[1]\', document,null,XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
+          fullXPathQuery <- 'document.evaluate(\'/html/body/div[4]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[1]\', document,null,XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
           halfXPathQuery <- 'document.evaluate(\'//*[@id="rhs"]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[1]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
           classNameQuery <- 'document.querySelector("span.Aq14fc").innerText'
           
@@ -273,7 +273,7 @@ server <- function(input, output, session) {
           # !! TO DO 2 checked DONE 
           hotelReviews <- NULL
           
-          fullXPathQuery <- 'document.evaluate(\'/html/body/div[5]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/a\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
+          fullXPathQuery <- 'document.evaluate(\'/html/body/div[4]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/a\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
           halfXPathQuery <- 'document.evaluate(\'//*[@id="rhs"]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/a\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
           classNameQuery <- 'document.querySelector("a.hqzQac").innerText'
           
@@ -307,7 +307,7 @@ server <- function(input, output, session) {
           
           hotelRating <- NULL
           
-          fullXPathQuery <- 'document.evaluate(\'/html/body/div[5]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[3]/div/div/div/div[1]/div/div/div[1]/a/div/div/div[2]/div/span[1]/span[1]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
+          fullXPathQuery <- 'document.evaluate(\'/html/body/div[4]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[3]/div/div/div/div[1]/div/div/div[1]/a/div/div/div[2]/div/span[1]/span[1]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
           halfXPathQuery <- 'document.evaluate(\'//*[@id="0_lbl"]/div[2]/div/span[1]/span[1]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
           classNameQuery <- 'document.querySelector("span.yi40Hd").innerText'
           
@@ -341,9 +341,9 @@ server <- function(input, output, session) {
 
           hotelReviews <- NULL
           
-          fullXPathQuery <- 'document.evaluate(\'/html/body/div[5]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[3]/div/div/div/div[1]/div/div/div[1]/a/div/div/div[2]/div/span[1]/span[3]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
+          fullXPathQuery <- 'document.evaluate(\'/html/body/div[4]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[3]/div/div/div/div[1]/div/div/div[1]/a/div/div/div[2]/div/span[1]/span[3]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
           halfXPathQuery <- 'document.evaluate(\'//*[@id="0_lbl"]/div[2]/div/span[1]/span[3]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
-          classNameQuery <- 'document.querySelector("a.hqzQac")'
+          classNameQuery <- 'document.querySelector("span.YrbPuc:nth-of-type(3)")'
           
           hotelReviewsByFullXPath <- driver$Runtime$evaluate(fullXPathQuery)$result$value
           hotelReviewsByHalfXPath <- driver$Runtime$evaluate(halfXPathQuery)$result$value
@@ -375,11 +375,10 @@ server <- function(input, output, session) {
         # !!! How do we set the review and rating then !!!
         # Input: The Social Hub Eindhoven. Output: checkHotelStarType$result$type = "string", checkHotelStarType$result$value = "Hotel"
         # In special case when checkHotelStarType is not null but hotelRating and hotelReviews are null. Example: The Social Hub Eindhoven        
-        else if(is.null(hotelRating) && is.null(hotelReviews) && !is.null(checkHotelStarType$result$value) && !is.na(parse_number(checkHotelStarType$result$value)) && !grepl(paste(hotelStarString, collapse = "|"), checkHotelStarType$result$value))
+        else if(is.null(hotelRating) && is.null(hotelReviews) && !is.null(checkHotelStarType) && !is.na(parse_number(checkHotelStarType)) && !grepl(paste(hotelStarString, collapse = "|"), checkHotelStarType))
         {
           hotelStarType <- findHotelStarType(splitHotelName, googlePageText, FALSE) 
-          
-          fullXPathQuery <- 'document.evaluate(\'/html/body/div[5]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[1]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
+          fullXPathQuery <- 'document.evaluate(\'/html/body/div[4]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[1]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
           halfXPathQuery <- 'document.evaluate(\'//*[@id="rhs"]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[1]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null.singleNodeValue.innerText'
           classNameQuery <- 'document.querySelector("span.Aq14fc").innerText'
           
@@ -410,7 +409,7 @@ server <- function(input, output, session) {
           # !! TO DO 2 checked DONE 
           hotelReviews <- NULL
           
-          fullXPathQuery <- 'document.evaluate(\'/html/body/div[5]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/a\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
+          fullXPathQuery <- 'document.evaluate(\'/html/body/div[4]/div/div[13]/div[2]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[3]/span/a\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
           halfXPathQuery <- 'document.evaluate(\'//*[@id="rhs"]/div[4]/div[3]/div/div/div[2]/div/div/div[2]/div[1]/div/span[3]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.innerText'
           classNameQuery1 <- 'document.querySelector("a.hqzQac").innerText'
           classNameQuery2 <- 'document.querySelector("a[data-async-trigger=\'reviewDialog\']").innerText'
@@ -449,7 +448,7 @@ server <- function(input, output, session) {
 
         write(paste0("SearchTextForNeighborHotel -> ", searchTextForNeighborHotelForTextarea$result$value, "\n"), debugFileUrl, sep = "\n", append = TRUE)
 
-        fullXPathQuery <- 'document.evaluate(\'/html/body/div[3]/div[2]/form/div[1]/div[1]/div[2]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
+        fullXPathQuery <- 'document.evaluate(\'/html/body/div[2]/div[2]/form/div[1]/div[1]/div[2]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
         halfXPathQuery <- 'document.evaluate(\'//*[@id="tsf"]/div[1]/div[1]/div[2]/button\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
         classNameQuery <- 'document.querySelector("button.Tg7LZd")'
         areaLabelQuery <- 'document.querySelector("button[aria-label=\'Search\']")'
@@ -487,7 +486,7 @@ server <- function(input, output, session) {
         
         # Click on the drop-down menu and check if it is exist by guestDropdownBtn$result$objectId
 
-        fullXPathQuery <- 'document.evaluate(\'/html/body/div[5]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[2]/div[3]/div/g-popup/div[1]/div/div/div/div[3]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
+        fullXPathQuery <- 'document.evaluate(\'/html/body/div[4]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[2]/div[3]/div/g-popup/div[1]/div/div/div/div[3]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
         halfXPathQuery <- 'document.evaluate(\'//*[@id="Odp5De"]/div/div/div/div/div/div[2]/div[3]/div/g-popup/div[1]/div/div/div/div[3]\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
         classNameQuery <- 'document.querySelector("div.R2w7Jd")'
         areaLabelQuery <- 'document.querySelector("div[aria-label=\'Select number of guests. Current selection is 2 guests\']")'
@@ -537,8 +536,8 @@ server <- function(input, output, session) {
           
         }else{
           # Click to select guest number 1 from the drop-down menu.
-          fullXPathQuery <- 'document.evaluate(\'/html/body/div[5]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[2]/div[3]/div/g-popup/div[2]/ul/li[1]/a/div\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
-          halfXPathQuery <- 'document.evaluate(\'//*[@id="Odp5De"]/div/div/div/div/div[2]/div[3]/div/g-popup/div[2]/ul/li[1]/a/div\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
+          fullXPathQuery <- 'document.evaluate(\'/html/body/div[4]/div/div[13]/div[1]/div[2]/div/div/div/div/div/div/div/div[2]/div[3]/div/g-popup/div[2]/ul/li[1]/a/div\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
+          halfXPathQuery <- 'document.evaluate(\'//*[@id="Odp5De"]/div/div/div/div/div/div[2]/div[3]/div/g-popup/div[2]/ul/li[1]/a/div\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
           classNameQuery <- 'document.querySelector("div.JWXKNd")'
 
           checkActive()
@@ -787,6 +786,8 @@ server <- function(input, output, session) {
           notify("Submit date picker...", id = id)
           Sys.sleep(3)
           
+          j <- 1
+          
           # Collect hotel prices, ratings and number of reviews from the page
           neighborHotelDetails <- list()
           for(room in hotelRoomType){
@@ -944,7 +945,7 @@ server <- function(input, output, session) {
             fullXPathQuery <- 'document.evaluate(\'/html/body/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[1]/div\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
             halfXPathQuery <- 'document.evaluate(\'//*[@id="yDmH0d"]/c-wiz[2]/div/c-wiz/div[1]/div[1]/div[1]/c-wiz/div/div/div[1]/div/div[1]/div[3]/div/div/div/div[1]/div\', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue'
             classNameQuery <- 'document.querySelector("div.r0Ogod")'
-            areaLabelQuery <- paste0('document.querySelector("[aria-label=\'Number of travellers. Current number of travellers is ', i, '.\']")')
+            areaLabelQuery <- paste0('document.querySelector("[aria-label=\'Number of travellers. Current number of travellers is ', j, '.\']")')
             checkActive()
             #browser()
             guestDropdownBtnByFullXPath<-driver$Runtime$evaluate(fullXPathQuery)
@@ -974,9 +975,9 @@ server <- function(input, output, session) {
               checkActive()
               driver$Runtime$evaluate(paste0(classNameQuery, ".click()"))
             } 
-            i <- i+1
             
             notify("Clicking on the '+' button to increase the guest number by 1 ...", id = id)
+            j <- j+1
             Sys.sleep(3)
             #browser()
 
